@@ -95,7 +95,9 @@ class FraudDataPreprocessor:
             y = None
             X = data
         
-        self.feature_names = X.columns.tolist()
+        # Only set feature names when fitting (training)
+        if fit:
+            self.feature_names = X.columns.tolist()
         
         # Scale features
         if fit:
