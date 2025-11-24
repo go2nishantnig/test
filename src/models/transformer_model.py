@@ -144,12 +144,14 @@ class FraudDetectionTransformer:
         x = layers.Dense(self.config['d_model'])(inputs)
         
         # Add positional encoding (simple learned embeddings)
-        positions = tf.range(start=0, limit=self.config['max_sequence_length'], delta=1)
-        position_embedding = layers.Embedding(
+        # Create position indices as a constant
+        position_ids = tf.constant([list(range(self.config['max_sequence_length']))])
+        position_embedding_layer = layers.Embedding(
             input_dim=self.config['max_sequence_length'],
             output_dim=self.config['d_model']
-        )(positions)
-        x = x + position_embedding
+        )
+        position_embeddings = position_embedding_layer(position_ids)
+        x = x + position_embeddings
         
         # Stack transformer blocks
         for _ in range(self.config['num_layers']):
