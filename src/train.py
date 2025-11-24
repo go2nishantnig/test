@@ -127,28 +127,36 @@ def train_model():
     for metric_name, metric_value in zip(model.metrics_names, test_results):
         print(f"{metric_name}: {metric_value:.4f}")
     
-    # Save final model
+    # Save final model in Keras format
     final_model_path = os.path.join(
         MODEL_SAVE_DIR,
-        f'{MODEL_NAME}_{MODEL_VERSION}_final'
+        f'{MODEL_NAME}_{MODEL_VERSION}_final.keras'
     )
     print(f"\n7. Saving final model to: {final_model_path}")
     model.save(final_model_path)
     
-    # Also save in H5 format
+    # Also save in H5 format for compatibility
     final_model_h5_path = os.path.join(
         MODEL_SAVE_DIR,
         f'{MODEL_NAME}_{MODEL_VERSION}_final.h5'
     )
     model.save(final_model_h5_path)
     
+    # Export SavedModel format for deployment
+    saved_model_dir = os.path.join(
+        MODEL_SAVE_DIR,
+        f'{MODEL_NAME}_{MODEL_VERSION}_savedmodel'
+    )
+    model.export(saved_model_dir)
+    
     print("\n" + "=" * 70)
     print("Training completed successfully!")
     print("=" * 70)
     print(f"\nModel saved to: {MODEL_SAVE_DIR}")
     print(f"  - Best model: {checkpoint_path}")
-    print(f"  - Final model: {final_model_path}")
+    print(f"  - Final model (Keras): {final_model_path}")
     print(f"  - Final model (H5): {final_model_h5_path}")
+    print(f"  - SavedModel: {saved_model_dir}")
     print(f"  - Scaler: {scaler_path}")
     print(f"\nTensorBoard logs: {log_dir}")
     print(f"Run 'tensorboard --logdir {log_dir}' to view training metrics")

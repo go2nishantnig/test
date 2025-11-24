@@ -68,9 +68,13 @@ This will:
 - Generate TensorBoard logs
 
 **Output location**: All trained models and artifacts are saved to `models/saved_models/` directory:
-- `fraud_detection_transformer_v1.0_final/` - Final model
-- `fraud_detection_transformer_v1.0_best.h5` - Best checkpoint
-- `fraud_detection_transformer_v1.0_scaler.pkl` - Data scaler
+- `fraud_detection_transformer_v1.0_best.h5` - Best checkpoint during training
+- `fraud_detection_transformer_v1.0_final.keras` - Final model in Keras format
+- `fraud_detection_transformer_v1.0_final.h5` - Final model in H5 format (for compatibility)
+- `fraud_detection_transformer_v1.0_savedmodel/` - SavedModel format (for deployment)
+- `fraud_detection_transformer_v1.0_scaler.pkl` - Data preprocessing scaler
+
+Training logs are saved to `models/logs/` for TensorBoard visualization.
 
 ### Making Predictions
 
@@ -134,6 +138,26 @@ Modify `config/config.py` to adjust:
 - **Model parameters**: `d_model`, `num_heads`, `num_layers`, etc.
 - **Training parameters**: `batch_size`, `epochs`, `learning_rate`
 - **Directory paths**: `MODEL_SAVE_DIR`, `DATA_DIR`, `LOG_DIR`
+
+Default configuration:
+```python
+MODEL_CONFIG = {
+    'num_features': 30,
+    'd_model': 64,
+    'num_heads': 4,
+    'num_layers': 2,
+    'dff': 128,
+    'dropout_rate': 0.1,
+}
+
+TRAINING_CONFIG = {
+    'batch_size': 32,
+    'epochs': 10,
+    'learning_rate': 0.001,
+    'validation_split': 0.2,
+    'early_stopping_patience': 5,
+}
+```
 
 ## Model Saving
 

@@ -7,6 +7,7 @@ from tensorflow.keras import layers
 import numpy as np
 
 
+@keras.utils.register_keras_serializable(package='FraudDetection')
 class MultiHeadSelfAttention(layers.Layer):
     """Multi-head self-attention layer"""
     
@@ -69,11 +70,17 @@ class MultiHeadSelfAttention(layers.Layer):
         return config
 
 
+@keras.utils.register_keras_serializable(package='FraudDetection')
 class TransformerBlock(layers.Layer):
     """Transformer block with attention and feed-forward network"""
     
     def __init__(self, d_model, num_heads, dff, dropout_rate=0.1, **kwargs):
         super(TransformerBlock, self).__init__(**kwargs)
+        
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.dff = dff
+        self.dropout_rate = dropout_rate
         
         self.attention = MultiHeadSelfAttention(d_model, num_heads)
         self.ffn = keras.Sequential([
@@ -102,6 +109,12 @@ class TransformerBlock(layers.Layer):
     
     def get_config(self):
         config = super().get_config()
+        config.update({
+            'd_model': self.d_model,
+            'num_heads': self.num_heads,
+            'dff': self.dff,
+            'dropout_rate': self.dropout_rate,
+        })
         return config
 
 

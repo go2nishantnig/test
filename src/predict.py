@@ -13,6 +13,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.config import MODEL_SAVE_DIR, MODEL_NAME, MODEL_VERSION
 from src.utils.data_preprocessing import FraudDataPreprocessor
+# Import custom layers to ensure they are registered
+from src.models.transformer_model import MultiHeadSelfAttention, TransformerBlock
 
 
 class FraudDetectionPredictor:
@@ -28,10 +30,26 @@ class FraudDetectionPredictor:
         """
         # Set default paths if not provided
         if model_path is None:
-            model_path = os.path.join(
+            # Try different model formats
+            keras_path = os.path.join(
                 MODEL_SAVE_DIR,
-                f'{MODEL_NAME}_{MODEL_VERSION}_final'
+                f'{MODEL_NAME}_{MODEL_VERSION}_final.keras'
             )
+            h5_path = os.path.join(
+                MODEL_SAVE_DIR,
+                f'{MODEL_NAME}_{MODEL_VERSION}_final.h5'
+            )
+            
+            if os.path.exists(keras_path):
+                model_path = keras_path
+            elif os.path.exists(h5_path):
+                model_path = h5_path
+            else:
+                # Fallback to best checkpoint
+                model_path = os.path.join(
+                    MODEL_SAVE_DIR,
+                    f'{MODEL_NAME}_{MODEL_VERSION}_best.h5'
+                )
         
         if scaler_path is None:
             scaler_path = os.path.join(
@@ -113,10 +131,13 @@ def demo_prediction():
     print("Fraud Detection Transformer - Inference Demo")
     print("=" * 70)
     
-    # Check if model exists
-    model_path = os.path.join(MODEL_SAVE_DIR, f'{MODEL_NAME}_{MODEL_VERSION}_final')
-    if not os.path.exists(model_path):
-        print(f"\nError: Model not found at {model_path}")
+    # Check if model exists (try multiple formats)
+    keras_path = os.path.join(MODEL_SAVE_DIR, f'{MODEL_NAME}_{MODEL_VERSION}_final.keras')
+    h5_path = os.path.join(MODEL_SAVE_DIR, f'{MODEL_NAME}_{MODEL_VERSION}_final.h5')
+    best_path = os.path.join(MODEL_SAVE_DIR, f'{MODEL_NAME}_{MODEL_VERSION}_best.h5')
+    
+    if not (os.path.exists(keras_path) or os.path.exists(h5_path) or os.path.exists(best_path)):
+        print(f"\nError: No trained model found in {MODEL_SAVE_DIR}")
         print("Please run train.py first to train the model.")
         return
     
@@ -164,7 +185,7 @@ def demo_prediction():
     print("Single Transaction Prediction Example:")
     print("=" * 70)
     
-    single_transaction = test_data.drop(['is_fraud'], axis=1).iloc[0].to_dict()
+    single_transaction = test_data.drop(['is_fraud', 'predicted_fraud', 'fraud_probability'], axis=1).iloc[0].to_dict()
     result = predictor.predict_single_transaction(single_transaction)
     
     print(f"\nTransaction details:")

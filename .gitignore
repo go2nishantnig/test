@@ -34,6 +34,7 @@ venv.bak/
 
 # TensorFlow
 *.h5
+*.keras
 *.pb
 *.ckpt
 checkpoint
@@ -59,6 +60,6 @@ data/*.pkl
 .DS_Store
 Thumbs.db
 
-# Models (optional - remove if you want to track models)
-# models/saved_models/*.h5
-# models/saved_models/*/
+# Models - trained models are saved here but excluded from git
+models/saved_models/
+models/logs/

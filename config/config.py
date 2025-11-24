@@ -28,10 +28,10 @@ MODEL_CONFIG = {
 # Training parameters
 TRAINING_CONFIG = {
     'batch_size': 32,
-    'epochs': 50,
+    'epochs': 10,  # Reduced for testing
     'learning_rate': 0.001,
     'validation_split': 0.2,
-    'early_stopping_patience': 10,
+    'early_stopping_patience': 5,  # Reduced for testing
 }
 
 # Model saving
