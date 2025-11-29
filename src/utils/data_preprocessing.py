@@ -344,11 +344,15 @@ class QRCodePreprocessor:
         return np.array(images), np.array(labels)
     
     def _load_and_resize_image(self, filepath, target_size):
-        """Load and resize an image (placeholder implementation)"""
-        # In production, use PIL or cv2:
-        # from PIL import Image
-        # img = Image.open(filepath).resize(target_size)
-        # return np.array(img)
+        """Load and resize an image
+        
+        Note: This is a placeholder. In production, use PIL or OpenCV:
+            from PIL import Image
+            img = Image.open(filepath).resize(target_size).convert('RGB')
+            return np.array(img) / 255.0
+        """
+        # Placeholder - actual implementation requires PIL/cv2
+        # Return None to signal that synthetic data should be used instead
         return None
     
     def prepare_train_test_data(self, test_size=0.2, random_state=42):
@@ -399,21 +403,22 @@ class MultimodalDataPreprocessor:
             n_samples=n_samples, fraud_ratio=fraud_ratio
         )
         
-        # Generate QR images (with correlation to fraud - malicious QR codes more likely in fraud)
-        images = []
-        for is_fraud in tabular_data['isFraud']:
-            # Malicious QR codes are more common in fraudulent transactions
-            malicious_prob = 0.8 if is_fraud else 0.1
-            is_malicious = np.random.random() < malicious_prob
-            img = self.qr_preprocessor._generate_qr_pattern(malicious=is_malicious)
-            images.append(img)
+        # Vectorized image generation
+        # Determine which samples get malicious QR codes based on fraud status
+        fraud_labels = tabular_data['isFraud'].values
+        malicious_probs = np.where(fraud_labels == 1, 0.8, 0.1)
+        is_malicious = np.random.random(n_samples) < malicious_probs
         
-        images = np.array(images).astype(np.float32) / 255.0
+        # Generate all images (batch processing for efficiency)
+        images = np.array([
+            self.qr_preprocessor._generate_qr_pattern(malicious=mal)
+            for mal in is_malicious
+        ], dtype=np.float32) / 255.0
         
         return {
             'tabular': tabular_data,
             'images': images,
-            'labels': tabular_data['isFraud'].values
+            'labels': fraud_labels
         }
     
     def preprocess_multimodal_data(self, tabular_data, images, fit=True):

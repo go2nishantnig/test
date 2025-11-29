@@ -283,9 +283,10 @@ class PatchEmbedding(layers.Layer):
         )
     
     def call(self, images):
+        # Get batch size dynamically
         batch_size = tf.shape(images)[0]
         
-        # Extract patches
+        # Extract patches using tf.image.extract_patches
         patches = tf.image.extract_patches(
             images=images,
             sizes=[1, self.patch_size, self.patch_size, 1],
@@ -294,7 +295,7 @@ class PatchEmbedding(layers.Layer):
             padding='VALID'
         )
         
-        # Reshape patches
+        # Reshape patches: (batch, h_patches, w_patches, patch_dim) -> (batch, num_patches, patch_dim)
         patch_dims = patches.shape[-1]
         patches = tf.reshape(patches, [batch_size, -1, patch_dims])
         

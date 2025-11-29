@@ -19,8 +19,9 @@ os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 
 # Tabular data configuration (Online Payments Fraud Detection)
+# Note: nameOrig and nameDest are dropped during preprocessing as they are ID columns
 TABULAR_CONFIG = {
-    'num_features': 8,  # After preprocessing: step, type, amount, oldbalanceOrg, newbalanceOrig, oldbalanceDest, newbalanceDest, isFlaggedFraud
+    'num_features': 8,  # After preprocessing: step, type (encoded), amount, oldbalanceOrg, newbalanceOrig, oldbalanceDest, newbalanceDest, isFlaggedFraud
     'feature_names': [
         'step', 'type', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
         'oldbalanceDest', 'newbalanceDest', 'isFlaggedFraud'
