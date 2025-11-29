@@ -6,6 +6,15 @@ This model combines:
 2. Vision Transformer encoder for QR code images (Benign vs Malicious)
 3. Cross-modal attention for fusion
 4. Shared classification head
+
+Transformer Components:
+- MultiHeadSelfAttention: Standard multi-head self-attention for encoder
+- MaskedMultiHeadAttention: Masked multi-head attention for decoder (causal masking)
+- CrossModalAttention: Cross multi-head attention for cross-modal fusion
+- FeedForward: Position-wise feed-forward network
+- ResidualConnection: Residual connection with layer normalization (Add & Norm)
+- TransformerBlock: Complete transformer encoder block
+- CrossModalTransformerBlock: Cross-modal transformer block for multimodal fusion
 """
 import tensorflow as tf
 from tensorflow import keras
@@ -13,9 +22,130 @@ from tensorflow.keras import layers
 import numpy as np
 
 
+# Constant for attention masking (large negative value that becomes ~0 after softmax)
+MASK_VALUE = -1e9
+
+
+@keras.utils.register_keras_serializable(package='FraudDetection')
+class FeedForward(layers.Layer):
+    """
+    Position-wise Feed-Forward Network (FFN)
+    
+    This is a key component of the Transformer architecture.
+    It consists of two linear transformations with a ReLU activation in between:
+    FFN(x) = max(0, xW1 + b1)W2 + b2
+    
+    Args:
+        d_model: Dimension of the model (input and output dimension)
+        dff: Dimension of the feed-forward hidden layer (typically 4 * d_model)
+        dropout_rate: Dropout rate for regularization
+    """
+    
+    def __init__(self, d_model, dff, dropout_rate=0.1, **kwargs):
+        super(FeedForward, self).__init__(**kwargs)
+        self.d_model = d_model
+        self.dff = dff
+        self.dropout_rate = dropout_rate
+        
+        # First linear transformation: d_model -> dff
+        self.dense1 = layers.Dense(dff, activation='relu')
+        # Second linear transformation: dff -> d_model
+        self.dense2 = layers.Dense(d_model)
+        self.dropout = layers.Dropout(dropout_rate)
+    
+    def call(self, x, training=False):
+        """
+        Forward pass through the feed-forward network
+        
+        Args:
+            x: Input tensor of shape (batch_size, seq_len, d_model)
+            training: Boolean flag for training mode (affects dropout)
+            
+        Returns:
+            Output tensor of shape (batch_size, seq_len, d_model)
+        """
+        x = self.dense1(x)
+        x = self.dropout(x, training=training)
+        x = self.dense2(x)
+        return x
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'd_model': self.d_model,
+            'dff': self.dff,
+            'dropout_rate': self.dropout_rate,
+        })
+        return config
+
+
+@keras.utils.register_keras_serializable(package='FraudDetection')
+class ResidualConnection(layers.Layer):
+    """
+    Residual Connection with Layer Normalization (Add & Norm)
+    
+    This is a fundamental component of the Transformer architecture.
+    It implements: LayerNorm(x + Sublayer(x))
+    
+    The residual connection helps with:
+    - Gradient flow during backpropagation
+    - Training deeper networks
+    - Preserving information from earlier layers
+    
+    Args:
+        d_model: Dimension of the model
+        dropout_rate: Dropout rate applied to sublayer output before addition
+    """
+    
+    def __init__(self, d_model, dropout_rate=0.1, **kwargs):
+        super(ResidualConnection, self).__init__(**kwargs)
+        self.d_model = d_model
+        self.dropout_rate = dropout_rate
+        
+        self.layer_norm = layers.LayerNormalization(epsilon=1e-6)
+        self.dropout = layers.Dropout(dropout_rate)
+    
+    def call(self, x, sublayer_output, training=False):
+        """
+        Apply residual connection: LayerNorm(x + Dropout(sublayer_output))
+        
+        Args:
+            x: Original input tensor
+            sublayer_output: Output from the sublayer (attention or FFN)
+            training: Boolean flag for training mode
+            
+        Returns:
+            Output tensor after residual connection and layer normalization
+        """
+        sublayer_output = self.dropout(sublayer_output, training=training)
+        return self.layer_norm(x + sublayer_output)
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'd_model': self.d_model,
+            'dropout_rate': self.dropout_rate,
+        })
+        return config
+
+
 @keras.utils.register_keras_serializable(package='FraudDetection')
 class MultiHeadSelfAttention(layers.Layer):
-    """Multi-head self-attention layer"""
+    """
+    Multi-Head Self-Attention Layer
+    
+    This is a core component of the Transformer encoder.
+    It allows the model to jointly attend to information from different 
+    representation subspaces at different positions.
+    
+    Multi-head attention computes:
+    MultiHead(Q, K, V) = Concat(head_1, ..., head_h)W^O
+    where head_i = Attention(QW_i^Q, KW_i^K, VW_i^V)
+    
+    Args:
+        d_model: Dimension of the model
+        num_heads: Number of attention heads
+    """
     
     def __init__(self, d_model, num_heads, **kwargs):
         super(MultiHeadSelfAttention, self).__init__(**kwargs)
@@ -77,8 +207,138 @@ class MultiHeadSelfAttention(layers.Layer):
 
 
 @keras.utils.register_keras_serializable(package='FraudDetection')
+class MaskedMultiHeadAttention(layers.Layer):
+    """
+    Masked Multi-Head Attention Layer
+    
+    This is a core component of the Transformer decoder.
+    It prevents positions from attending to subsequent positions (causal masking),
+    which is essential for autoregressive generation tasks.
+    
+    The masking ensures that the prediction for position i can depend only on
+    the known outputs at positions less than i.
+    
+    Args:
+        d_model: Dimension of the model
+        num_heads: Number of attention heads
+    """
+    
+    def __init__(self, d_model, num_heads, **kwargs):
+        super(MaskedMultiHeadAttention, self).__init__(**kwargs)
+        self.d_model = d_model
+        self.num_heads = num_heads
+        
+        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
+        
+        self.depth = d_model // num_heads
+        
+        self.wq = layers.Dense(d_model)
+        self.wk = layers.Dense(d_model)
+        self.wv = layers.Dense(d_model)
+        
+        self.dense = layers.Dense(d_model)
+        
+    def split_heads(self, x, batch_size):
+        """Split the last dimension into (num_heads, depth)"""
+        x = tf.reshape(x, (batch_size, -1, self.num_heads, self.depth))
+        return tf.transpose(x, perm=[0, 2, 1, 3])
+    
+    def create_causal_mask(self, seq_len):
+        """
+        Create a causal (look-ahead) mask for autoregressive decoding
+        
+        The mask prevents attention to future positions:
+        [[0, -inf, -inf, ...],
+         [0,    0, -inf, ...],
+         [0,    0,    0, ...],
+         ...]
+        
+        Args:
+            seq_len: Length of the sequence
+            
+        Returns:
+            Causal mask tensor of shape (seq_len, seq_len)
+        """
+        # Create a lower triangular matrix
+        mask = 1 - tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)
+        # Convert to large negative values for masking (will become ~0 after softmax)
+        return mask * MASK_VALUE
+    
+    def call(self, inputs, mask=None):
+        """
+        Forward pass with optional masking
+        
+        Args:
+            inputs: Input tensor of shape (batch_size, seq_len, d_model)
+            mask: Optional external mask. If None, creates causal mask automatically
+            
+        Returns:
+            Output tensor of shape (batch_size, seq_len, d_model)
+        """
+        batch_size = tf.shape(inputs)[0]
+        seq_len = tf.shape(inputs)[1]
+        
+        # Linear projections
+        q = self.wq(inputs)
+        k = self.wk(inputs)
+        v = self.wv(inputs)
+        
+        # Split heads
+        q = self.split_heads(q, batch_size)
+        k = self.split_heads(k, batch_size)
+        v = self.split_heads(v, batch_size)
+        
+        # Scaled dot-product attention
+        matmul_qk = tf.matmul(q, k, transpose_b=True)
+        dk = tf.cast(tf.shape(k)[-1], tf.float32)
+        scaled_attention_logits = matmul_qk / tf.math.sqrt(dk)
+        
+        # Apply causal mask if no external mask provided
+        if mask is None:
+            causal_mask = self.create_causal_mask(seq_len)
+            scaled_attention_logits += causal_mask
+        else:
+            scaled_attention_logits += mask
+        
+        attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
+        output = tf.matmul(attention_weights, v)
+        
+        # Concatenate heads
+        output = tf.transpose(output, perm=[0, 2, 1, 3])
+        output = tf.reshape(output, (batch_size, -1, self.d_model))
+        
+        # Final linear projection
+        output = self.dense(output)
+        
+        return output
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'd_model': self.d_model,
+            'num_heads': self.num_heads,
+        })
+        return config
+
+
+@keras.utils.register_keras_serializable(package='FraudDetection')
 class CrossModalAttention(layers.Layer):
-    """Cross-modal attention layer for fusing tabular and image features"""
+    """
+    Cross Multi-Head Attention Layer (Cross-Modal Attention)
+    
+    This layer enables attention between two different modalities or sequences.
+    Unlike self-attention where Q, K, V come from the same source,
+    cross-attention uses Query from one modality and Key/Value from another.
+    
+    Use cases:
+    - Multimodal learning (tabular + image fusion)
+    - Encoder-decoder attention in sequence-to-sequence models
+    - Cross-attention between different feature representations
+    
+    Args:
+        d_model: Dimension of the model
+        num_heads: Number of attention heads
+    """
     
     def __init__(self, d_model, num_heads, **kwargs):
         super(CrossModalAttention, self).__init__(**kwargs)
@@ -103,9 +363,14 @@ class CrossModalAttention(layers.Layer):
     
     def call(self, query_input, key_value_input):
         """
+        Compute cross-modal attention
+        
         Args:
-            query_input: Query from one modality
-            key_value_input: Key and Value from another modality
+            query_input: Query from one modality (batch_size, seq_len_q, d_model)
+            key_value_input: Key and Value from another modality (batch_size, seq_len_kv, d_model)
+            
+        Returns:
+            Output tensor attending from query modality to key/value modality
         """
         batch_size = tf.shape(query_input)[0]
         
@@ -147,7 +412,25 @@ class CrossModalAttention(layers.Layer):
 
 @keras.utils.register_keras_serializable(package='FraudDetection')
 class TransformerBlock(layers.Layer):
-    """Transformer block with attention and feed-forward network"""
+    """
+    Transformer Encoder Block
+    
+    This is the standard transformer encoder block consisting of:
+    1. Multi-Head Self-Attention sublayer
+    2. Residual connection + Layer Normalization (Add & Norm)
+    3. Position-wise Feed-Forward Network (FFN) sublayer  
+    4. Residual connection + Layer Normalization (Add & Norm)
+    
+    The block implements: 
+    x = LayerNorm(x + MultiHeadAttention(x))
+    x = LayerNorm(x + FeedForward(x))
+    
+    Args:
+        d_model: Dimension of the model
+        num_heads: Number of attention heads
+        dff: Dimension of the feed-forward hidden layer
+        dropout_rate: Dropout rate for regularization
+    """
     
     def __init__(self, d_model, num_heads, dff, dropout_rate=0.1, **kwargs):
         super(TransformerBlock, self).__init__(**kwargs)
@@ -157,28 +440,40 @@ class TransformerBlock(layers.Layer):
         self.dff = dff
         self.dropout_rate = dropout_rate
         
+        # Multi-Head Self-Attention sublayer
         self.attention = MultiHeadSelfAttention(d_model, num_heads)
-        self.ffn = keras.Sequential([
-            layers.Dense(dff, activation='relu'),
-            layers.Dense(d_model),
-        ])
         
+        # Feed-Forward Network sublayer (dropout disabled here, applied after in residual)
+        self.ffn = FeedForward(d_model, dff, dropout_rate=0)
+        
+        # Layer Normalization for residual connections
         self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
         self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
         
+        # Dropout layers applied before residual addition (standard transformer pattern)
         self.dropout1 = layers.Dropout(dropout_rate)
         self.dropout2 = layers.Dropout(dropout_rate)
         
     def call(self, inputs, training=False):
-        # Multi-head attention
+        """
+        Forward pass through the transformer block
+        
+        Args:
+            inputs: Input tensor of shape (batch_size, seq_len, d_model)
+            training: Boolean flag for training mode
+            
+        Returns:
+            Output tensor of shape (batch_size, seq_len, d_model)
+        """
+        # Multi-Head Self-Attention + Residual Connection
         attn_output = self.attention(inputs)
         attn_output = self.dropout1(attn_output, training=training)
-        out1 = self.layernorm1(inputs + attn_output)
+        out1 = self.layernorm1(inputs + attn_output)  # Residual connection
         
-        # Feed-forward network
-        ffn_output = self.ffn(out1)
+        # Feed-Forward Network + Residual Connection
+        ffn_output = self.ffn(out1, training=training)
         ffn_output = self.dropout2(ffn_output, training=training)
-        out2 = self.layernorm2(out1 + ffn_output)
+        out2 = self.layernorm2(out1 + ffn_output)  # Residual connection
         
         return out2
     
@@ -194,8 +489,119 @@ class TransformerBlock(layers.Layer):
 
 
 @keras.utils.register_keras_serializable(package='FraudDetection')
+class TransformerDecoderBlock(layers.Layer):
+    """
+    Transformer Decoder Block
+    
+    This is the standard transformer decoder block consisting of:
+    1. Masked Multi-Head Self-Attention (prevents looking at future tokens)
+    2. Residual connection + Layer Normalization
+    3. Cross Multi-Head Attention (attends to encoder output)
+    4. Residual connection + Layer Normalization
+    5. Position-wise Feed-Forward Network
+    6. Residual connection + Layer Normalization
+    
+    The decoder block is used for autoregressive generation tasks.
+    
+    Args:
+        d_model: Dimension of the model
+        num_heads: Number of attention heads
+        dff: Dimension of the feed-forward hidden layer
+        dropout_rate: Dropout rate for regularization
+    """
+    
+    def __init__(self, d_model, num_heads, dff, dropout_rate=0.1, **kwargs):
+        super(TransformerDecoderBlock, self).__init__(**kwargs)
+        
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.dff = dff
+        self.dropout_rate = dropout_rate
+        
+        # Masked Multi-Head Self-Attention (for decoder)
+        self.masked_attention = MaskedMultiHeadAttention(d_model, num_heads)
+        
+        # Cross Multi-Head Attention (attends to encoder output)
+        self.cross_attention = CrossModalAttention(d_model, num_heads)
+        
+        # Feed-Forward Network (dropout disabled here, applied after in residual)
+        self.ffn = FeedForward(d_model, dff, dropout_rate=0)
+        
+        # Layer Normalization for residual connections
+        self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
+        self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
+        self.layernorm3 = layers.LayerNormalization(epsilon=1e-6)
+        
+        # Dropout layers applied before residual addition (standard transformer pattern)
+        self.dropout1 = layers.Dropout(dropout_rate)
+        self.dropout2 = layers.Dropout(dropout_rate)
+        self.dropout3 = layers.Dropout(dropout_rate)
+        
+    def call(self, inputs, encoder_output, training=False, mask=None):
+        """
+        Forward pass through the decoder block
+        
+        Args:
+            inputs: Decoder input tensor (batch_size, target_seq_len, d_model)
+            encoder_output: Encoder output tensor (batch_size, source_seq_len, d_model)
+            training: Boolean flag for training mode
+            mask: Optional attention mask
+            
+        Returns:
+            Output tensor of shape (batch_size, target_seq_len, d_model)
+        """
+        # Masked Multi-Head Self-Attention + Residual Connection
+        masked_attn_output = self.masked_attention(inputs, mask=mask)
+        masked_attn_output = self.dropout1(masked_attn_output, training=training)
+        out1 = self.layernorm1(inputs + masked_attn_output)
+        
+        # Cross Multi-Head Attention + Residual Connection
+        cross_attn_output = self.cross_attention(out1, encoder_output)
+        cross_attn_output = self.dropout2(cross_attn_output, training=training)
+        out2 = self.layernorm2(out1 + cross_attn_output)
+        
+        # Feed-Forward Network + Residual Connection
+        ffn_output = self.ffn(out2, training=training)
+        ffn_output = self.dropout3(ffn_output, training=training)
+        out3 = self.layernorm3(out2 + ffn_output)
+        
+        return out3
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'd_model': self.d_model,
+            'num_heads': self.num_heads,
+            'dff': self.dff,
+            'dropout_rate': self.dropout_rate,
+        })
+        return config
+
+
+@keras.utils.register_keras_serializable(package='FraudDetection')
 class CrossModalTransformerBlock(layers.Layer):
-    """Cross-modal transformer block for fusing two modalities"""
+    """
+    Cross-Modal Transformer Block for Multimodal Fusion
+    
+    This block enables bidirectional cross-attention between two modalities.
+    It allows each modality to attend to the other, enabling rich feature fusion.
+    
+    Structure:
+    - Tabular modality attends to Image modality (Cross Multi-Head Attention)
+    - Residual connection + Layer Normalization
+    - Feed-Forward Network for Tabular
+    - Residual connection + Layer Normalization
+    - Image modality attends to Tabular modality (Cross Multi-Head Attention)
+    - Residual connection + Layer Normalization
+    - Feed-Forward Network for Image
+    - Residual connection + Layer Normalization
+    
+    Args:
+        d_model: Dimension of the model
+        num_heads: Number of attention heads
+        dff: Dimension of the feed-forward hidden layer
+        dropout_rate: Dropout rate for regularization
+    """
     
     def __init__(self, d_model, num_heads, dff, dropout_rate=0.1, **kwargs):
         super(CrossModalTransformerBlock, self).__init__(**kwargs)
@@ -210,45 +616,53 @@ class CrossModalTransformerBlock(layers.Layer):
         # Cross attention: image attends to tabular
         self.cross_attn_img_to_tab = CrossModalAttention(d_model, num_heads)
         
-        self.ffn_tabular = keras.Sequential([
-            layers.Dense(dff, activation='relu'),
-            layers.Dense(d_model),
-        ])
-        self.ffn_image = keras.Sequential([
-            layers.Dense(dff, activation='relu'),
-            layers.Dense(d_model),
-        ])
+        # Feed-Forward Networks for each modality (dropout disabled, applied after in residual)
+        self.ffn_tabular = FeedForward(d_model, dff, dropout_rate=0)
+        self.ffn_image = FeedForward(d_model, dff, dropout_rate=0)
         
+        # Layer Normalization for residual connections
         self.layernorm_tab1 = layers.LayerNormalization(epsilon=1e-6)
         self.layernorm_tab2 = layers.LayerNormalization(epsilon=1e-6)
         self.layernorm_img1 = layers.LayerNormalization(epsilon=1e-6)
         self.layernorm_img2 = layers.LayerNormalization(epsilon=1e-6)
         
+        # Dropout layers applied before residual addition (standard transformer pattern)
         self.dropout_tab1 = layers.Dropout(dropout_rate)
         self.dropout_tab2 = layers.Dropout(dropout_rate)
         self.dropout_img1 = layers.Dropout(dropout_rate)
         self.dropout_img2 = layers.Dropout(dropout_rate)
         
     def call(self, tabular_input, image_input, training=False):
-        # Cross attention: tabular attends to image
+        """
+        Forward pass through the cross-modal transformer block
+        
+        Args:
+            tabular_input: Tabular features (batch_size, seq_len_tab, d_model)
+            image_input: Image features (batch_size, num_patches, d_model)
+            training: Boolean flag for training mode
+            
+        Returns:
+            Tuple of (tabular_output, image_output) with cross-modal attention applied
+        """
+        # Cross Multi-Head Attention: tabular attends to image + Residual
         cross_attn_tab = self.cross_attn_tab_to_img(tabular_input, image_input)
         cross_attn_tab = self.dropout_tab1(cross_attn_tab, training=training)
-        tabular_out = self.layernorm_tab1(tabular_input + cross_attn_tab)
+        tabular_out = self.layernorm_tab1(tabular_input + cross_attn_tab)  # Residual connection
         
-        # FFN for tabular
-        ffn_tab = self.ffn_tabular(tabular_out)
+        # Feed-Forward Network for tabular + Residual
+        ffn_tab = self.ffn_tabular(tabular_out, training=training)
         ffn_tab = self.dropout_tab2(ffn_tab, training=training)
-        tabular_out = self.layernorm_tab2(tabular_out + ffn_tab)
+        tabular_out = self.layernorm_tab2(tabular_out + ffn_tab)  # Residual connection
         
-        # Cross attention: image attends to tabular
+        # Cross Multi-Head Attention: image attends to tabular + Residual
         cross_attn_img = self.cross_attn_img_to_tab(image_input, tabular_input)
         cross_attn_img = self.dropout_img1(cross_attn_img, training=training)
-        image_out = self.layernorm_img1(image_input + cross_attn_img)
+        image_out = self.layernorm_img1(image_input + cross_attn_img)  # Residual connection
         
-        # FFN for image
-        ffn_img = self.ffn_image(image_out)
+        # Feed-Forward Network for image + Residual
+        ffn_img = self.ffn_image(image_out, training=training)
         ffn_img = self.dropout_img2(ffn_img, training=training)
-        image_out = self.layernorm_img2(image_out + ffn_img)
+        image_out = self.layernorm_img2(image_out + ffn_img)  # Residual connection
         
         return tabular_out, image_out
     
@@ -338,12 +752,13 @@ class MultimodalFraudDetectionTransformer:
         x = layers.Dense(self.config['d_model'])(inputs)
         
         # Add positional encoding (simple learned embeddings)
+        # Note: position_ids is created as constant during model build, not each forward pass
         max_seq_len = self.config.get('max_sequence_length', 1)
+        position_ids = tf.constant([list(range(max_seq_len))])
         position_embedding_layer = layers.Embedding(
             input_dim=max_seq_len,
             output_dim=self.config['d_model']
         )
-        position_ids = tf.constant([list(range(max_seq_len))])
         position_embeddings = position_embedding_layer(position_ids)
         x = x + position_embeddings
         
@@ -489,10 +904,11 @@ class FraudDetectionTransformer:
         x = layers.Dense(self.config['d_model'])(inputs)
         
         # Add positional encoding (simple learned embeddings)
-        # Create position indices as a constant
-        position_ids = tf.constant([list(range(self.config['max_sequence_length']))])
+        # Note: position_ids is created as constant during model build, not each forward pass
+        max_seq_len = self.config['max_sequence_length']
+        position_ids = tf.constant([list(range(max_seq_len))])
         position_embedding_layer = layers.Embedding(
-            input_dim=self.config['max_sequence_length'],
+            input_dim=max_seq_len,
             output_dim=self.config['d_model']
         )
         position_embeddings = position_embedding_layer(position_ids)

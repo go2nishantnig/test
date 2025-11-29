@@ -201,6 +201,21 @@ print(f"Fraud Probability: {result['fraud_probability']:.2%}")
 
 ## Model Architecture
 
+### Transformer Components
+
+This implementation includes all standard transformer components:
+
+| Component | Description |
+|-----------|-------------|
+| **MultiHeadSelfAttention** | Standard multi-head self-attention for encoder |
+| **MaskedMultiHeadAttention** | Masked multi-head attention for decoder (causal masking) |
+| **CrossModalAttention** | Cross multi-head attention for cross-modal fusion |
+| **FeedForward** | Position-wise feed-forward network |
+| **ResidualConnection** | Residual connection with layer normalization (Add & Norm) |
+| **TransformerBlock** | Complete encoder block |
+| **TransformerDecoderBlock** | Complete decoder block with masked attention |
+| **CrossModalTransformerBlock** | Cross-modal transformer block for multimodal fusion |
+
 ### Multimodal Architecture
 
 1. **Tabular Branch** (Transaction Features):
@@ -208,16 +223,20 @@ print(f"Fraud Probability: {result['fraud_probability']:.2%}")
    - Feature Embedding: Projects to 64-dimensional space
    - Positional Encoding
    - 2 Transformer Blocks with 4 attention heads
+   - Each block contains: MultiHeadSelfAttention + Residual + FeedForward + Residual
 
 2. **Image Branch** (QR Codes):
    - Input: 128x128 RGB images
    - Patch Embedding: 16x16 patches → 64 patches
    - Positional Encoding
    - 2 Transformer Blocks with 4 attention heads
+   - Each block contains: MultiHeadSelfAttention + Residual + FeedForward + Residual
 
 3. **Cross-Modal Fusion**:
-   - 2 Cross-Modal Attention Layers
-   - Bidirectional attention between modalities
+   - 2 Cross-Modal Attention Layers (CrossModalTransformerBlock)
+   - Bidirectional CrossModalAttention between modalities
+   - Tabular attends to image, Image attends to tabular
+   - FeedForward networks + Residual connections for each modality
 
 4. **Classification Head**:
    - Global Average Pooling
