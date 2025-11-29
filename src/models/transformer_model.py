@@ -22,6 +22,10 @@ from tensorflow.keras import layers
 import numpy as np
 
 
+# Constant for attention masking (large negative value that becomes ~0 after softmax)
+MASK_VALUE = -1e9
+
+
 @keras.utils.register_keras_serializable(package='FraudDetection')
 class FeedForward(layers.Layer):
     """
@@ -258,7 +262,7 @@ class MaskedMultiHeadAttention(layers.Layer):
         # Create a lower triangular matrix
         mask = 1 - tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)
         # Convert to large negative values for masking (will become ~0 after softmax)
-        return mask * -1e9
+        return mask * MASK_VALUE
     
     def call(self, inputs, mask=None):
         """
@@ -439,14 +443,14 @@ class TransformerBlock(layers.Layer):
         # Multi-Head Self-Attention sublayer
         self.attention = MultiHeadSelfAttention(d_model, num_heads)
         
-        # Feed-Forward Network sublayer
-        self.ffn = FeedForward(d_model, dff, dropout_rate=0)  # Dropout handled separately
+        # Feed-Forward Network sublayer (dropout disabled here, applied after in residual)
+        self.ffn = FeedForward(d_model, dff, dropout_rate=0)
         
         # Layer Normalization for residual connections
         self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
         self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
         
-        # Dropout layers for residual connections
+        # Dropout layers applied before residual addition (standard transformer pattern)
         self.dropout1 = layers.Dropout(dropout_rate)
         self.dropout2 = layers.Dropout(dropout_rate)
         
@@ -520,7 +524,7 @@ class TransformerDecoderBlock(layers.Layer):
         # Cross Multi-Head Attention (attends to encoder output)
         self.cross_attention = CrossModalAttention(d_model, num_heads)
         
-        # Feed-Forward Network
+        # Feed-Forward Network (dropout disabled here, applied after in residual)
         self.ffn = FeedForward(d_model, dff, dropout_rate=0)
         
         # Layer Normalization for residual connections
@@ -528,7 +532,7 @@ class TransformerDecoderBlock(layers.Layer):
         self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
         self.layernorm3 = layers.LayerNormalization(epsilon=1e-6)
         
-        # Dropout layers
+        # Dropout layers applied before residual addition (standard transformer pattern)
         self.dropout1 = layers.Dropout(dropout_rate)
         self.dropout2 = layers.Dropout(dropout_rate)
         self.dropout3 = layers.Dropout(dropout_rate)
@@ -612,7 +616,7 @@ class CrossModalTransformerBlock(layers.Layer):
         # Cross attention: image attends to tabular
         self.cross_attn_img_to_tab = CrossModalAttention(d_model, num_heads)
         
-        # Feed-Forward Networks for each modality
+        # Feed-Forward Networks for each modality (dropout disabled, applied after in residual)
         self.ffn_tabular = FeedForward(d_model, dff, dropout_rate=0)
         self.ffn_image = FeedForward(d_model, dff, dropout_rate=0)
         
@@ -622,7 +626,7 @@ class CrossModalTransformerBlock(layers.Layer):
         self.layernorm_img1 = layers.LayerNormalization(epsilon=1e-6)
         self.layernorm_img2 = layers.LayerNormalization(epsilon=1e-6)
         
-        # Dropout layers for residual connections
+        # Dropout layers applied before residual addition (standard transformer pattern)
         self.dropout_tab1 = layers.Dropout(dropout_rate)
         self.dropout_tab2 = layers.Dropout(dropout_rate)
         self.dropout_img1 = layers.Dropout(dropout_rate)
@@ -748,12 +752,13 @@ class MultimodalFraudDetectionTransformer:
         x = layers.Dense(self.config['d_model'])(inputs)
         
         # Add positional encoding (simple learned embeddings)
+        # Note: position_ids is created as constant during model build, not each forward pass
         max_seq_len = self.config.get('max_sequence_length', 1)
+        position_ids = tf.constant([list(range(max_seq_len))])
         position_embedding_layer = layers.Embedding(
             input_dim=max_seq_len,
             output_dim=self.config['d_model']
         )
-        position_ids = tf.constant([list(range(max_seq_len))])
         position_embeddings = position_embedding_layer(position_ids)
         x = x + position_embeddings
         
@@ -899,10 +904,11 @@ class FraudDetectionTransformer:
         x = layers.Dense(self.config['d_model'])(inputs)
         
         # Add positional encoding (simple learned embeddings)
-        # Create position indices as a constant
-        position_ids = tf.constant([list(range(self.config['max_sequence_length']))])
+        # Note: position_ids is created as constant during model build, not each forward pass
+        max_seq_len = self.config['max_sequence_length']
+        position_ids = tf.constant([list(range(max_seq_len))])
         position_embedding_layer = layers.Embedding(
-            input_dim=self.config['max_sequence_length'],
+            input_dim=max_seq_len,
             output_dim=self.config['d_model']
         )
         position_embeddings = position_embedding_layer(position_ids)
