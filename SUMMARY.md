@@ -1,23 +1,49 @@
-# Project Summary: Fraud Detection Transformer Model
+# Project Summary: Multimodal Fraud Detection Transformer Model
 
 ## Overview
-This project implements a transformer-based neural network model for detecting fraudulent transactions using TensorFlow. The model uses multi-head self-attention mechanisms to analyze transaction patterns and classify them as fraudulent or legitimate.
+This project implements a multimodal transformer-based neural network model for detecting fraudulent transactions using TensorFlow. The model combines two data modalities:
+
+1. **Tabular Data**: Transaction features from [Online Payments Fraud Detection Dataset](https://www.kaggle.com/datasets/rupakroy/online-payments-fraud-detection-dataset)
+2. **Image Data**: QR code images from [Benign and Malicious QR Codes Dataset](https://www.kaggle.com/datasets/samahsadiq/benign-and-malicious-qr-codes)
+
+The architecture uses cross-modal attention to fuse information from both modalities for improved fraud detection.
 
 ## Architecture Details
 
-### Transformer Model Components
-1. **Input Layer**: Accepts 30 transaction features
-2. **Embedding Layer**: Projects features to 64-dimensional space
-3. **Positional Encoding**: Adds position information to embeddings
-4. **Transformer Blocks** (x2):
-   - Multi-head self-attention (4 heads)
-   - Feed-forward network (128 dimensions)
-   - Layer normalization
-   - Residual connections
-   - Dropout (0.1 rate)
-5. **Global Average Pooling**: Aggregates sequence information
-6. **Classification Head**: Dense layers with dropout
-7. **Output**: Sigmoid activation for binary classification
+### Multimodal Transformer Components
+
+#### 1. Tabular Branch (Transaction Features)
+- **Input**: 10 transaction features (step, type, amount, etc.)
+- **Feature Embedding**: Projects to 64-dimensional space
+- **Transformer Blocks** (x2):
+  - Multi-head self-attention (4 heads)
+  - Feed-forward network (128 dimensions)
+  - Layer normalization
+  - Residual connections
+  - Dropout (0.1 rate)
+
+#### 2. Image Branch (QR Codes - Vision Transformer)
+- **Input**: 128x128 RGB images
+- **Patch Embedding**: 16x16 patches → 64 patches total
+- **Positional Encoding**: Learnable position embeddings
+- **Transformer Blocks** (x2):
+  - Multi-head self-attention (4 heads)
+  - Feed-forward network (128 dimensions)
+  - Layer normalization
+  - Residual connections
+  - Dropout (0.1 rate)
+
+#### 3. Cross-Modal Fusion
+- **Cross-Modal Attention Layers** (x2):
+  - Tabular attends to image features
+  - Image attends to tabular features
+  - Bidirectional information exchange
+
+#### 4. Classification Head
+- **Global Average Pooling**: Aggregates sequence information
+- **Concatenation**: Merges both modality representations
+- **Dense Layers**: 128 → 64 with dropout
+- **Output**: Sigmoid activation for binary classification
 
 ### Model Performance
 - **Metrics**: Accuracy, Precision, Recall, AUC
@@ -35,11 +61,9 @@ This project implements a transformer-based neural network model for detecting f
 ├── models/                   # Model storage
 │   ├── logs/                # TensorBoard logs (gitignored)
 │   └── saved_models/        # Trained models (gitignored)
-│       ├── fraud_detection_transformer_v1.0_best.h5
-│       ├── fraud_detection_transformer_v1.0_final.keras
-│       ├── fraud_detection_transformer_v1.0_final.h5
-│       ├── fraud_detection_transformer_v1.0_savedmodel/
-│       └── fraud_detection_transformer_v1.0_scaler.pkl
+│       ├── multimodal_fraud_detection_transformer_v2.0_best.keras
+│       ├── multimodal_fraud_detection_transformer_v2.0_final.keras
+│       └── multimodal_fraud_detection_transformer_v2.0_preprocessor.pkl
 ├── notebooks/                # Jupyter notebooks
 │   └── fraud_detection_demo.ipynb
 ├── src/                      # Source code
@@ -61,65 +85,83 @@ This project implements a transformer-based neural network model for detecting f
 
 ## Key Features
 
-### 1. Custom Transformer Implementation
-- Multi-head self-attention mechanism
+### 1. Multimodal Transformer Implementation
+- Tabular data encoder with self-attention
+- Vision Transformer (ViT) for QR code images
+- Cross-modal attention for information fusion
 - Properly registered Keras serializable layers
-- Residual connections and layer normalization
 - Configurable architecture
 
 ### 2. Data Processing
-- Synthetic data generation for testing
-- Feature scaling and normalization
-- Train/test split with stratification
-- Scaler persistence for inference
+- **Tabular Data**:
+  - Feature encoding (categorical → numerical)
+  - Feature scaling and normalization
+  - Handles transaction features matching Kaggle dataset
+- **Image Data**:
+  - Patch extraction for Vision Transformer
+  - Image normalization
+  - Synthetic QR code generation for testing
 
 ### 3. Training Pipeline
+- Multimodal batch training
 - Automated model checkpointing
 - Early stopping to prevent overfitting
 - Learning rate reduction on plateau
 - TensorBoard logging for monitoring
-- Multiple save formats (Keras, H5, SavedModel)
+- Multiple save formats (Keras)
 
 ### 4. Inference Pipeline
-- Easy-to-use predictor class
+- Multimodal predictor class
+- Tabular-only predictor (backward compatible)
 - Single transaction prediction
 - Batch prediction support
 - Automatic model format detection
 
 ### 5. Model Persistence
-All models are automatically saved to `models/saved_models/` directory in the virtual machine:
+All models are automatically saved to `models/saved_models/` directory:
 - **Best checkpoint**: Saved during training based on validation loss
-- **Final model**: Saved at the end of training in multiple formats
-- **Scaler**: Saved for consistent preprocessing during inference
+- **Final model**: Saved at the end of training
+- **Preprocessor**: Saved for consistent preprocessing during inference
 - **Logs**: TensorBoard logs for training visualization
 
 ## Usage Examples
 
 ### Training
 ```bash
-python src/train.py
+# Train multimodal model (default)
+python src/train.py --mode multimodal
+
+# Train tabular-only model
+python src/train.py --mode tabular
 ```
 
 ### Inference
 ```bash
-python src/predict.py
+# Multimodal inference demo
+python src/predict.py --mode multimodal
+
+# Tabular-only inference demo
+python src/predict.py --mode tabular
 ```
 
 ### Quick Start
 ```bash
-python quick_start.py
+# Multimodal quick start
+python quick_start.py --mode multimodal
+
+# Tabular-only quick start
+python quick_start.py --mode tabular
 ```
 
 ### Using in Code
 ```python
-from src.predict import FraudDetectionPredictor
+from src.predict import MultimodalFraudDetectionPredictor
 
-predictor = FraudDetectionPredictor()
-result = predictor.predict_single_transaction({
-    'amount': 250.0,
-    'time': 14530,
-    # ... other features
-})
+predictor = MultimodalFraudDetectionPredictor()
+result = predictor.predict_single_transaction(
+    tabular_features={'step': 1, 'type': 'TRANSFER', 'amount': 50000.0, ...},
+    image=qr_code_image  # Normalized numpy array
+)
 print(f"Fraud Probability: {result['fraud_probability']:.2%}")
 ```
 
@@ -132,26 +174,48 @@ print(f"Fraud Probability: {result['fraud_probability']:.2%}")
 - Seaborn >= 0.12.0
 - Jupyter >= 1.0.0
 
+## Datasets
+
+### Online Payments Fraud Detection Dataset
+- **Source**: [Kaggle](https://www.kaggle.com/datasets/rupakroy/online-payments-fraud-detection-dataset)
+- **Features**:
+  - `step`: Hour of simulation
+  - `type`: Transaction type (PAYMENT, TRANSFER, CASH_OUT, DEBIT, CASH_IN)
+  - `amount`: Transaction amount
+  - `nameOrig`: Customer originating the transaction
+  - `oldbalanceOrg`: Initial balance before transaction
+  - `newbalanceOrig`: Balance after transaction
+  - `nameDest`: Recipient of the transaction
+  - `oldbalanceDest`: Initial recipient balance
+  - `newbalanceDest`: Recipient balance after transaction
+  - `isFraud`: Target variable (1 = fraud, 0 = not fraud)
+  - `isFlaggedFraud`: Business rule flagged as fraud
+
+### Benign and Malicious QR Codes Dataset
+- **Source**: [Kaggle](https://www.kaggle.com/datasets/samahsadiq/benign-and-malicious-qr-codes)
+- **Structure**:
+  - `benign/`: Directory containing benign QR code images
+  - `malicious/`: Directory containing malicious QR code images
+- **Image Size**: Resized to 128x128 for model input
+
 ## Model Characteristics
 
-### Input Features (30 total)
-- `amount`: Transaction amount
-- `time`: Time of transaction
-- `distance_from_home`: Distance from home address
-- `distance_from_last_transaction`: Distance from previous transaction
-- `ratio_to_median_purchase_price`: Ratio to median purchase
-- `repeat_retailer`: Binary flag for repeat retailer
-- `used_chip`: Binary flag for chip usage
-- `used_pin_number`: Binary flag for PIN usage
-- `online_order`: Binary flag for online order
-- `feature_9` to `feature_29`: Additional synthetic features
+### Input Features
+1. **Tabular** (10 features after preprocessing):
+   - step, type (encoded), amount, oldbalanceOrg, newbalanceOrig
+   - oldbalanceDest, newbalanceDest, isFlaggedFraud
+
+2. **Image** (128x128x3):
+   - RGB QR code images normalized to [0, 1]
 
 ### Model Parameters
 - **Model dimension**: 64
 - **Attention heads**: 4
-- **Transformer layers**: 2
+- **Transformer layers**: 2 per modality
+- **Cross-modal layers**: 2
 - **Feed-forward dimension**: 128
 - **Dropout rate**: 0.1
+- **Patch size**: 16 (for images)
 
 ### Training Parameters
 - **Batch size**: 32
@@ -160,37 +224,19 @@ print(f"Fraud Probability: {result['fraud_probability']:.2%}")
 - **Validation split**: 20%
 - **Optimizer**: Adam
 
-## Performance Notes
-
-### Test Results (Sample Run)
-- Successfully identifies normal transactions with low fraud probability (<0.01%)
-- Successfully identifies suspicious transactions with high fraud probability (>99%)
-- Model handles both edge cases appropriately
-
-### Model Outputs
-- **Binary prediction**: Fraud (1) or Not Fraud (0)
-- **Probability score**: Continuous value between 0 and 1
-- **Threshold**: Default 0.5 (adjustable)
-
 ## Future Enhancements
-1. Integrate real transaction datasets
+1. Load and train on real Kaggle datasets
 2. Add more sophisticated feature engineering
-3. Implement explainability (attention visualization)
+3. Implement attention visualization for explainability
 4. Add API endpoint for production deployment
 5. Implement online learning capabilities
 6. Add model monitoring and drift detection
+7. Support for additional image modalities (ID scans, receipts)
 
 ## Notes
-- Models are saved in multiple formats for flexibility
+- Models are saved in Keras format for flexibility
 - Custom layers are properly registered for serialization
 - All paths are configurable via `config/config.py`
 - The system supports both CPU and GPU training
 - TensorBoard logs are available for detailed training analysis
-
-## Testing
-The implementation has been tested with:
-- ✓ Model training completes successfully
-- ✓ Models save to correct directory in VM
-- ✓ Model loading works correctly
-- ✓ Prediction pipeline functions properly
-- ✓ Both normal and fraudulent transactions are classified correctly
+- Backward compatible with tabular-only mode
