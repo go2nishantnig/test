@@ -8,6 +8,33 @@ This project implements a multimodal transformer-based neural network model for 
 
 The architecture uses cross-modal attention to fuse information from both modalities for improved fraud detection.
 
+## Transformer Components
+
+This implementation includes all standard transformer components:
+
+### Attention Mechanisms
+
+| Component | Description | Use Case |
+|-----------|-------------|----------|
+| **MultiHeadSelfAttention** | Standard multi-head self-attention | Encoder self-attention |
+| **MaskedMultiHeadAttention** | Multi-head attention with causal masking | Decoder self-attention (autoregressive) |
+| **CrossModalAttention** | Cross multi-head attention | Cross-modal fusion, encoder-decoder attention |
+
+### Core Components
+
+| Component | Description |
+|-----------|-------------|
+| **FeedForward** | Position-wise feed-forward network (FFN): two linear transformations with ReLU activation |
+| **ResidualConnection** | Residual connection with layer normalization (Add & Norm) |
+
+### Transformer Blocks
+
+| Component | Description | Contains |
+|-----------|-------------|----------|
+| **TransformerBlock** | Standard encoder block | MultiHeadSelfAttention + Residual + FFN + Residual |
+| **TransformerDecoderBlock** | Standard decoder block | MaskedMultiHeadAttention + Residual + CrossModalAttention + Residual + FFN + Residual |
+| **CrossModalTransformerBlock** | Cross-modal fusion block | Bidirectional CrossModalAttention + Residuals + FFN + Residuals |
+
 ## Architecture Details
 
 ### Multimodal Transformer Components
@@ -35,9 +62,11 @@ The architecture uses cross-modal attention to fuse information from both modali
 
 #### 3. Cross-Modal Fusion
 - **Cross-Modal Attention Layers** (x2):
-  - Tabular attends to image features
-  - Image attends to tabular features
+  - Tabular attends to image features (Cross Multi-Head Attention)
+  - Image attends to tabular features (Cross Multi-Head Attention)
   - Bidirectional information exchange
+  - Feed-forward networks for each modality
+  - Residual connections throughout
 
 #### 4. Classification Head
 - **Global Average Pooling**: Aggregates sequence information
