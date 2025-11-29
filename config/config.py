@@ -1,5 +1,9 @@
 """
-Configuration file for fraud detection transformer model
+Configuration file for multimodal fraud detection transformer model
+
+This model supports two modalities:
+1. Tabular data: Online Payments Fraud Detection features
+2. Image data: QR Code images (benign vs malicious)
 """
 import os
 
@@ -14,15 +18,49 @@ os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# Model hyperparameters
+# Tabular data configuration (Online Payments Fraud Detection)
+# Note: nameOrig and nameDest are dropped during preprocessing as they are ID columns
+TABULAR_CONFIG = {
+    'num_features': 8,  # After preprocessing: step, type (encoded), amount, oldbalanceOrg, newbalanceOrig, oldbalanceDest, newbalanceDest, isFlaggedFraud
+    'feature_names': [
+        'step', 'type', 'amount', 'oldbalanceOrg', 'newbalanceOrig',
+        'oldbalanceDest', 'newbalanceDest', 'isFlaggedFraud'
+    ],
+    'd_model': 64,  # Embedding dimension for tabular features
+}
+
+# Image data configuration (QR Codes)
+IMAGE_CONFIG = {
+    'image_size': (128, 128),  # QR code image size
+    'channels': 3,  # RGB channels
+    'patch_size': 16,  # Size of image patches for Vision Transformer
+    'num_patches': 64,  # (128/16) * (128/16) = 64 patches
+    'd_model': 64,  # Embedding dimension for image patches
+}
+
+# Multimodal Transformer Model hyperparameters
 MODEL_CONFIG = {
-    'num_features': 30,  # Number of input features
-    'd_model': 64,  # Dimension of the transformer model
+    # Tabular branch
+    'tabular_num_features': TABULAR_CONFIG['num_features'],
+    'tabular_d_model': TABULAR_CONFIG['d_model'],
+    
+    # Image branch (Vision Transformer style)
+    'image_size': IMAGE_CONFIG['image_size'],
+    'image_channels': IMAGE_CONFIG['channels'],
+    'patch_size': IMAGE_CONFIG['patch_size'],
+    'image_d_model': IMAGE_CONFIG['d_model'],
+    
+    # Shared transformer settings
+    'd_model': 64,  # Unified dimension for cross-modal fusion
     'num_heads': 4,  # Number of attention heads
-    'num_layers': 2,  # Number of transformer blocks
+    'num_layers': 2,  # Number of transformer blocks per modality
+    'cross_modal_layers': 2,  # Number of cross-modal attention layers
     'dff': 128,  # Dimension of feed-forward network
     'dropout_rate': 0.1,
-    'max_sequence_length': 1,  # For single transaction classification
+    
+    # For backward compatibility
+    'num_features': TABULAR_CONFIG['num_features'],
+    'max_sequence_length': 1,
 }
 
 # Training parameters
@@ -35,5 +73,9 @@ TRAINING_CONFIG = {
 }
 
 # Model saving
-MODEL_NAME = 'fraud_detection_transformer'
-MODEL_VERSION = 'v1.0'
+MODEL_NAME = 'multimodal_fraud_detection_transformer'
+MODEL_VERSION = 'v2.0'
+
+# Dataset paths (for real data loading)
+FRAUD_DATASET_PATH = os.path.join(DATA_DIR, 'online_payments_fraud.csv')
+QRCODE_DATASET_PATH = os.path.join(DATA_DIR, 'qr_codes')

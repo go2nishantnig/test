@@ -1,15 +1,64 @@
-# Fraud Detection Transformer Model
+# Multimodal Fraud Detection Transformer Model
 
-A TensorFlow-based transformer model for detecting fraudulent transactions. This project implements a complete pipeline for training, evaluating, and deploying a transformer-based fraud detection system.
+A TensorFlow-based multimodal transformer model for detecting fraudulent transactions. This project implements a complete pipeline for training, evaluating, and deploying a transformer-based fraud detection system that combines:
+
+1. **Tabular Data**: Transaction features from [Online Payments Fraud Detection Dataset](https://www.kaggle.com/datasets/rupakroy/online-payments-fraud-detection-dataset)
+2. **Image Data**: QR code images from [Benign and Malicious QR Codes Dataset](https://www.kaggle.com/datasets/samahsadiq/benign-and-malicious-qr-codes)
 
 ## Features
 
-- **Transformer Architecture**: Custom multi-head self-attention mechanism for transaction analysis
+- **Multimodal Transformer Architecture**: Combines tabular and image data using cross-modal attention
+- **Vision Transformer (ViT) for Images**: Patch-based image encoding for QR code analysis
+- **Tabular Transformer**: Self-attention mechanism for transaction feature analysis
+- **Cross-Modal Attention Fusion**: Allows each modality to attend to the other
 - **Automated Model Saving**: Trained models are automatically saved to a dedicated directory
-- **Data Preprocessing**: Built-in utilities for data scaling and preparation
-- **Synthetic Data Generation**: Demo dataset generator for testing and development
-- **Model Persistence**: Saves models, scalers, and training logs
-- **Inference Pipeline**: Easy-to-use prediction interface for new transactions
+- **Data Preprocessing**: Built-in utilities for both tabular and image data
+- **Synthetic Data Generation**: Demo dataset generators for testing and development
+- **Backward Compatible**: Supports tabular-only mode for legacy use cases
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Multimodal Transformer                           │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌─────────────────┐              ┌─────────────────┐              │
+│  │  Tabular Input  │              │   Image Input   │              │
+│  │  (Transaction)  │              │   (QR Code)     │              │
+│  └────────┬────────┘              └────────┬────────┘              │
+│           │                                │                        │
+│           ▼                                ▼                        │
+│  ┌─────────────────┐              ┌─────────────────┐              │
+│  │ Feature Embed   │              │ Patch Embedding │              │
+│  └────────┬────────┘              └────────┬────────┘              │
+│           │                                │                        │
+│           ▼                                ▼                        │
+│  ┌─────────────────┐              ┌─────────────────┐              │
+│  │  Transformer    │              │  Transformer    │              │
+│  │  Encoder        │              │  Encoder (ViT)  │              │
+│  └────────┬────────┘              └────────┬────────┘              │
+│           │                                │                        │
+│           └──────────┬─────────────────────┘                       │
+│                      ▼                                              │
+│           ┌─────────────────────┐                                   │
+│           │  Cross-Modal        │                                   │
+│           │  Attention Fusion   │                                   │
+│           └──────────┬──────────┘                                   │
+│                      │                                              │
+│                      ▼                                              │
+│           ┌─────────────────────┐                                   │
+│           │  Classification     │                                   │
+│           │  Head               │                                   │
+│           └──────────┬──────────┘                                   │
+│                      │                                              │
+│                      ▼                                              │
+│           ┌─────────────────────┐                                   │
+│           │  Fraud Prediction   │                                   │
+│           │  (0: Normal, 1: Fraud)                                  │
+│           └─────────────────────┘                                   │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## Directory Structure
 
@@ -51,46 +100,80 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Training the Model
+### Training the Multimodal Model
 
-Train the fraud detection transformer model:
+Train the multimodal fraud detection transformer model (default):
 
 ```bash
-python src/train.py
+python src/train.py --mode multimodal
+```
+
+Or train the tabular-only model:
+
+```bash
+python src/train.py --mode tabular
 ```
 
 This will:
-- Generate synthetic training data
+- Generate synthetic training data (or load real data if available)
 - Build the transformer model
 - Train the model with early stopping and learning rate reduction
 - Save the trained model to `models/saved_models/`
-- Save the data scaler for preprocessing
+- Save the data preprocessors
 - Generate TensorBoard logs
-
-**Output location**: All trained models and artifacts are saved to `models/saved_models/` directory:
-- `fraud_detection_transformer_v1.0_best.h5` - Best checkpoint during training
-- `fraud_detection_transformer_v1.0_final.keras` - Final model in Keras format
-- `fraud_detection_transformer_v1.0_final.h5` - Final model in H5 format (for compatibility)
-- `fraud_detection_transformer_v1.0_savedmodel/` - SavedModel format (for deployment)
-- `fraud_detection_transformer_v1.0_scaler.pkl` - Data preprocessing scaler
-
-Training logs are saved to `models/logs/` for TensorBoard visualization.
 
 ### Making Predictions
 
-Run predictions on new transactions:
+Run predictions on new data:
 
 ```bash
-python src/predict.py
+# Multimodal prediction
+python src/predict.py --mode multimodal
+
+# Tabular-only prediction
+python src/predict.py --mode tabular
 ```
 
-This demonstrates:
-- Loading the trained model
-- Making predictions on sample transactions
-- Displaying fraud probabilities and classifications
+### Quick Start
+
+```bash
+# Multimodal demo
+python quick_start.py --mode multimodal
+
+# Tabular-only demo
+python quick_start.py --mode tabular
+```
 
 ### Using the Model in Your Code
 
+**Multimodal Prediction:**
+```python
+from src.predict import MultimodalFraudDetectionPredictor
+
+# Initialize predictor
+predictor = MultimodalFraudDetectionPredictor()
+
+# Predict for a transaction with QR code
+result = predictor.predict_single_transaction(
+    tabular_features={
+        'step': 1,
+        'type': 'TRANSFER',
+        'amount': 50000.0,
+        'nameOrig': 'C1234567890',
+        'oldbalanceOrg': 100000.0,
+        'newbalanceOrig': 50000.0,
+        'nameDest': 'C9876543210',
+        'oldbalanceDest': 0.0,
+        'newbalanceDest': 50000.0,
+        'isFlaggedFraud': 0,
+    },
+    image=qr_code_image  # Normalized numpy array
+)
+print(f"Is Fraud: {result['is_fraud']}")
+print(f"Fraud Probability: {result['fraud_probability']:.2%}")
+```
+
+**Tabular-only Prediction:**
 ```python
 from src.predict import FraudDetectionPredictor
 
@@ -99,16 +182,16 @@ predictor = FraudDetectionPredictor()
 
 # Predict for a single transaction
 transaction = {
+    'step': 1,
+    'type': 'PAYMENT',
     'amount': 250.0,
-    'time': 14530,
-    'distance_from_home': 15.2,
-    'distance_from_last_transaction': 8.5,
-    'ratio_to_median_purchase_price': 2.1,
-    'repeat_retailer': 0,
-    'used_chip': 1,
-    'used_pin_number': 1,
-    'online_order': 1,
-    # ... other features
+    'nameOrig': 'C1234567890',
+    'oldbalanceOrg': 10000.0,
+    'newbalanceOrig': 9750.0,
+    'nameDest': 'M9876543210',
+    'oldbalanceDest': 5000.0,
+    'newbalanceDest': 5250.0,
+    'isFlaggedFraud': 0,
 }
 
 result = predictor.predict_single_transaction(transaction)
@@ -118,18 +201,28 @@ print(f"Fraud Probability: {result['fraud_probability']:.2%}")
 
 ## Model Architecture
 
-The fraud detection system uses a transformer-based architecture:
+### Multimodal Architecture
 
-1. **Input Layer**: Accepts transaction features (30 features by default)
-2. **Embedding Layer**: Projects inputs to model dimension (d_model=64)
-3. **Positional Encoding**: Adds positional information
-4. **Transformer Blocks**: 2 layers of multi-head self-attention
-   - 4 attention heads per layer
-   - Feed-forward dimension: 128
-   - Dropout: 0.1
-5. **Global Average Pooling**: Aggregates sequence information
-6. **Dense Layers**: Classification head with dropout
-7. **Output Layer**: Sigmoid activation for binary classification
+1. **Tabular Branch** (Transaction Features):
+   - Input Layer: 10 transaction features
+   - Feature Embedding: Projects to 64-dimensional space
+   - Positional Encoding
+   - 2 Transformer Blocks with 4 attention heads
+
+2. **Image Branch** (QR Codes):
+   - Input: 128x128 RGB images
+   - Patch Embedding: 16x16 patches → 64 patches
+   - Positional Encoding
+   - 2 Transformer Blocks with 4 attention heads
+
+3. **Cross-Modal Fusion**:
+   - 2 Cross-Modal Attention Layers
+   - Bidirectional attention between modalities
+
+4. **Classification Head**:
+   - Global Average Pooling
+   - Dense layers with dropout
+   - Sigmoid output for binary classification
 
 ## Configuration
 
@@ -137,15 +230,26 @@ Modify `config/config.py` to adjust:
 
 - **Model parameters**: `d_model`, `num_heads`, `num_layers`, etc.
 - **Training parameters**: `batch_size`, `epochs`, `learning_rate`
+- **Image settings**: `image_size`, `patch_size`
 - **Directory paths**: `MODEL_SAVE_DIR`, `DATA_DIR`, `LOG_DIR`
 
 Default configuration:
 ```python
 MODEL_CONFIG = {
-    'num_features': 30,
+    # Tabular branch
+    'tabular_num_features': 10,
+    'tabular_d_model': 64,
+    
+    # Image branch
+    'image_size': (128, 128),
+    'image_channels': 3,
+    'patch_size': 16,
+    
+    # Shared settings
     'd_model': 64,
     'num_heads': 4,
     'num_layers': 2,
+    'cross_modal_layers': 2,
     'dff': 128,
     'dropout_rate': 0.1,
 }
@@ -159,15 +263,17 @@ TRAINING_CONFIG = {
 }
 ```
 
-## Model Saving
+## Datasets
 
-The trained model is automatically saved to the virtual machine's file system at the location specified in `config/config.py`:
+This model is designed to work with:
 
-```python
-MODEL_SAVE_DIR = os.path.join(BASE_DIR, 'models', 'saved_models')
-```
+1. **Online Payments Fraud Detection Dataset**
+   - Source: [Kaggle](https://www.kaggle.com/datasets/rupakroy/online-payments-fraud-detection-dataset)
+   - Features: step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig, nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud
 
-This ensures all trained models are stored persistently and can be loaded for inference later.
+2. **Benign and Malicious QR Codes Dataset**
+   - Source: [Kaggle](https://www.kaggle.com/datasets/samahsadiq/benign-and-malicious-qr-codes)
+   - Contains benign and malicious QR code images
 
 ## Monitoring Training
 
@@ -183,11 +289,12 @@ Then open your browser to `http://localhost:6006`
 
 - Python 3.8+
 - TensorFlow 2.13+
-- NumPy
-- Pandas
-- Scikit-learn
-- Matplotlib
-- Seaborn
+- NumPy >= 1.24.0
+- Pandas >= 2.0.0
+- Scikit-learn >= 1.3.0
+- Matplotlib >= 3.7.0
+- Seaborn >= 0.12.0
+- Jupyter >= 1.0.0
 
 ## License
 
