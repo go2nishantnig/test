@@ -83,33 +83,133 @@ This implementation includes all standard transformer components:
 
 ```
 .
-├── config/                    # Configuration files
+├── config/                          # Configuration files
 │   ├── __init__.py
-│   └── config.py             # Model and training parameters
-├── data/                     # Data directory (empty initially)
-├── models/                   # Model storage
-│   ├── logs/                # TensorBoard logs (gitignored)
-│   └── saved_models/        # Trained models (gitignored)
+│   └── config.py                   # Model and training parameters
+├── data/                           # Data directory (empty initially)
+├── models/                         # Model storage
+│   ├── logs/                      # TensorBoard logs (gitignored)
+│   └── saved_models/              # Trained models (gitignored)
 │       ├── multimodal_fraud_detection_transformer_v2.0_best.keras
 │       ├── multimodal_fraud_detection_transformer_v2.0_final.keras
 │       └── multimodal_fraud_detection_transformer_v2.0_preprocessor.pkl
-├── notebooks/                # Jupyter notebooks
+├── notebooks/                      # Jupyter notebooks
 │   └── fraud_detection_demo.ipynb
-├── src/                      # Source code
-│   ├── models/              # Model architectures
-│   │   ├── __init__.py
-│   │   └── transformer_model.py
-│   ├── utils/               # Utility functions
-│   │   ├── __init__.py
-│   │   └── data_preprocessing.py
+├── src/                            # Source code
+│   ├── models/                    # Model architectures (MODULAR)
+│   │   ├── __init__.py            # Package exports
+│   │   ├── attention.py           # Attention mechanisms
+│   │   ├── layers.py              # Core layers (FeedForward, Residual)
+│   │   ├── blocks.py              # Transformer blocks
+│   │   ├── embeddings.py          # Embedding layers (PatchEmbedding)
+│   │   ├── transformer.py         # Model builders
+│   │   └── transformer_model.py   # Legacy (backward compatible)
+│   ├── utils/                     # Utility functions (MODULAR)
+│   │   ├── __init__.py            # Package exports
+│   │   ├── tabular_preprocessor.py     # FraudDataPreprocessor
+│   │   ├── image_preprocessor.py       # QRCodePreprocessor
+│   │   ├── multimodal_preprocessor.py  # MultimodalDataPreprocessor
+│   │   └── data_preprocessing.py       # Legacy (backward compatible)
 │   ├── __init__.py
-│   ├── train.py            # Training script
-│   └── predict.py          # Inference script
-├── .gitignore               # Git ignore rules
-├── README.md                # Main documentation
-├── requirements.txt         # Python dependencies
-├── quick_start.py          # Quick start example
-└── SUMMARY.md              # This file
+│   ├── train.py                  # Training script
+│   └── predict.py                # Inference script
+├── .gitignore                     # Git ignore rules
+├── README.md                      # Main documentation
+├── requirements.txt               # Python dependencies
+├── quick_start.py                # Quick start example
+└── SUMMARY.md                    # This file
+```
+
+## Package Architecture
+
+### Model Package (src/models/)
+
+The model package is organized into separate modules for clarity:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        src/models/ Package                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                        attention.py                                │  │
+│  │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐     │  │
+│  │  │MultiHeadSelf    │ │MaskedMultiHead  │ │CrossModal       │     │  │
+│  │  │Attention        │ │Attention        │ │Attention        │     │  │
+│  │  └─────────────────┘ └─────────────────┘ └─────────────────┘     │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                    │                                     │
+│                                    ▼                                     │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                          layers.py                                 │  │
+│  │         ┌─────────────────┐    ┌─────────────────┐                │  │
+│  │         │  FeedForward    │    │ResidualConnection│                │  │
+│  │         └─────────────────┘    └─────────────────┘                │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                    │                                     │
+│                                    ▼                                     │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                          blocks.py                                 │  │
+│  │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐     │  │
+│  │  │TransformerBlock │ │TransformerDeco  │ │CrossModalTrans  │     │  │
+│  │  │                 │ │derBlock         │ │formerBlock      │     │  │
+│  │  └─────────────────┘ └─────────────────┘ └─────────────────┘     │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                    │                                     │
+│              ┌─────────────────────┼─────────────────────┐              │
+│              ▼                     ▼                     ▼              │
+│  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐       │
+│  │ embeddings.py   │   │ transformer.py  │   │transformer_     │       │
+│  │                 │   │                 │   │model.py (Legacy)│       │
+│  │ PatchEmbedding  │   │ Multimodal      │   │                 │       │
+│  │                 │   │ Transformer     │   │ All classes in  │       │
+│  │                 │   │                 │   │ single file     │       │
+│  │                 │   │ Fraud Detection │   │ (backward       │       │
+│  │                 │   │ Transformer     │   │ compatible)     │       │
+│  └─────────────────┘   └─────────────────┘   └─────────────────┘       │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Utils Package (src/utils/)
+
+The utils package provides modular data preprocessing:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         src/utils/ Package                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌────────────────────────────┐    ┌────────────────────────────┐       │
+│  │  tabular_preprocessor.py   │    │   image_preprocessor.py    │       │
+│  │  ──────────────────────────│    │  ──────────────────────────│       │
+│  │  FraudDataPreprocessor     │    │  QRCodePreprocessor        │       │
+│  │  ├─ generate_synthetic_data│    │  ├─ generate_qr_images     │       │
+│  │  ├─ preprocess_data        │    │  ├─ load_from_directory    │       │
+│  │  ├─ save_scaler            │    │  ├─ _generate_qr_pattern   │       │
+│  │  ├─ load_scaler            │    │  └─ prepare_train_test_data│       │
+│  │  └─ prepare_train_test_data│    │                            │       │
+│  └────────────────────────────┘    └────────────────────────────┘       │
+│                   │                              │                       │
+│                   └──────────────┬───────────────┘                      │
+│                                  ▼                                       │
+│              ┌────────────────────────────────────────┐                 │
+│              │      multimodal_preprocessor.py        │                 │
+│              │  ──────────────────────────────────────│                 │
+│              │  MultimodalDataPreprocessor            │                 │
+│              │  ├─ generate_synthetic_multimodal_data │                 │
+│              │  ├─ preprocess_multimodal_data         │                 │
+│              │  ├─ prepare_train_test_data            │                 │
+│              │  ├─ save_preprocessors                 │                 │
+│              │  └─ load_preprocessors                 │                 │
+│              └────────────────────────────────────────┘                 │
+│                                                                          │
+│              ┌────────────────────────────────────────┐                 │
+│              │    data_preprocessing.py (Legacy)      │                 │
+│              │  ──────────────────────────────────────│                 │
+│              │  All classes in single file            │                 │
+│              │  (For backward compatibility)          │                 │
+│              └────────────────────────────────────────┘                 │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Key Features
@@ -120,6 +220,7 @@ This implementation includes all standard transformer components:
 - Cross-modal attention for information fusion
 - Properly registered Keras serializable layers
 - Configurable architecture
+- **Modular code structure** for easy understanding
 
 ### 2. Data Processing
 - **Tabular Data**:
@@ -130,6 +231,191 @@ This implementation includes all standard transformer components:
   - Patch extraction for Vision Transformer
   - Image normalization
   - Synthetic QR code generation for testing
+
+## Class Flow Diagrams
+
+### Complete Model Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     Complete Fraud Detection Pipeline                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   Raw Data                                                                   │
+│   ────────                                                                   │
+│   ┌─────────────────┐              ┌─────────────────┐                      │
+│   │ Transaction CSV │              │  QR Code Images │                      │
+│   └────────┬────────┘              └────────┬────────┘                      │
+│            │                                │                                │
+│            ▼                                ▼                                │
+│   ┌─────────────────┐              ┌─────────────────┐                      │
+│   │FraudData        │              │QRCode           │                      │
+│   │Preprocessor     │              │Preprocessor     │                      │
+│   └────────┬────────┘              └────────┬────────┘                      │
+│            │                                │                                │
+│            └────────────┬───────────────────┘                               │
+│                         ▼                                                    │
+│            ┌────────────────────────┐                                        │
+│            │MultimodalData          │                                        │
+│            │Preprocessor            │                                        │
+│            └────────────┬───────────┘                                        │
+│                         │                                                    │
+│   Preprocessed Data     │                                                    │
+│   ─────────────────     │                                                    │
+│   ┌─────────────────┐   │   ┌─────────────────┐                             │
+│   │ Tabular Features│◄──┴──►│  Image Patches  │                             │
+│   │ (1, 8) scaled   │       │ (128,128,3)     │                             │
+│   └────────┬────────┘       └────────┬────────┘                             │
+│            │                         │                                       │
+│            ▼                         ▼                                       │
+│   ┌──────────────────────────────────────────────────────┐                  │
+│   │         MultimodalFraudDetectionTransformer          │                  │
+│   │  ┌────────────────┐    ┌────────────────┐           │                  │
+│   │  │ Tabular        │    │ Image          │           │                  │
+│   │  │ Encoder        │    │ Encoder (ViT)  │           │                  │
+│   │  │ ┌────────────┐ │    │ ┌────────────┐ │           │                  │
+│   │  │ │Transformer │ │    │ │PatchEmbed  │ │           │                  │
+│   │  │ │Block x2    │ │    │ │Transformer │ │           │                  │
+│   │  │ └────────────┘ │    │ │Block x2    │ │           │                  │
+│   │  └───────┬────────┘    └──────┬───────┘│           │                  │
+│   │          │                    │         │           │                  │
+│   │          └─────────┬──────────┘         │           │                  │
+│   │                    ▼                    │           │                  │
+│   │          ┌──────────────────┐           │           │                  │
+│   │          │CrossModal        │           │           │                  │
+│   │          │TransformerBlock  │           │           │                  │
+│   │          │x2                │           │           │                  │
+│   │          └────────┬─────────┘           │           │                  │
+│   │                   │                     │           │                  │
+│   │                   ▼                     │           │                  │
+│   │          ┌──────────────────┐           │           │                  │
+│   │          │Classification    │           │           │                  │
+│   │          │Head (Dense)      │           │           │                  │
+│   │          └────────┬─────────┘           │           │                  │
+│   └───────────────────┼─────────────────────┘           │                  │
+│                       │                                  │                  │
+│   Output              ▼                                                     │
+│   ──────   ┌─────────────────┐                                              │
+│            │ Fraud Probability│                                              │
+│            │ 0.0 - 1.0        │                                              │
+│            └─────────────────┘                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### TransformerBlock Internal Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      TransformerBlock Internal Flow                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   Input: x ──────────────────────────────────────────────────────┐          │
+│          │                                                        │ (Skip)   │
+│          ▼                                                        │          │
+│   ┌──────────────────────────────────────────────────────────────┐│          │
+│   │                  MultiHeadSelfAttention                       ││          │
+│   │  ┌─────────┐  ┌─────────┐  ┌─────────┐                       ││          │
+│   │  │   Wq    │  │   Wk    │  │   Wv    │                       ││          │
+│   │  └────┬────┘  └────┬────┘  └────┬────┘                       ││          │
+│   │       │            │            │                             ││          │
+│   │       ▼            ▼            ▼                             ││          │
+│   │  ┌──────────────────────────────────────────────────────┐    ││          │
+│   │  │ Q·K^T / √d_k  →  softmax  →  × V  →  concat heads   │    ││          │
+│   │  └────────────────────────────────────────────────────────┘    ││          │
+│   │                            │                                   ││          │
+│   │                            ▼                                   ││          │
+│   │                     ┌────────────┐                             ││          │
+│   │                     │  Wo (Dense)│                             ││          │
+│   │                     └──────┬─────┘                             ││          │
+│   └────────────────────────────┼───────────────────────────────────┘│          │
+│                                │                                    │          │
+│                                ▼                                    │          │
+│                         ┌───────────┐                               │          │
+│                         │  Dropout  │                               │          │
+│                         └─────┬─────┘                               │          │
+│                               │◄────────────────────────────────────┘          │
+│                               ▼                                                 │
+│                         ┌───────────┐                                           │
+│                         │    Add    │                                           │
+│                         └─────┬─────┘                                           │
+│                               ▼                                                 │
+│                         ┌───────────┐                                           │
+│                         │ LayerNorm │                                           │
+│                         └─────┬─────┘                                           │
+│                               │                                                 │
+│                               ├─────────────────────────────────────┐ (Skip)   │
+│                               ▼                                     │          │
+│   ┌─────────────────────────────────────────────────────────────┐   │          │
+│   │                      FeedForward                             │   │          │
+│   │  ┌────────────────┐  ┌────────────┐  ┌────────────────┐    │   │          │
+│   │  │ Dense(d → dff) │→ │   ReLU     │→ │ Dense(dff → d) │    │   │          │
+│   │  └────────────────┘  └────────────┘  └────────────────┘    │   │          │
+│   └───────────────────────────┬─────────────────────────────────┘   │          │
+│                               ▼                                     │          │
+│                         ┌───────────┐                               │          │
+│                         │  Dropout  │                               │          │
+│                         └─────┬─────┘                               │          │
+│                               │◄────────────────────────────────────┘          │
+│                               ▼                                                 │
+│                         ┌───────────┐                                           │
+│                         │    Add    │                                           │
+│                         └─────┬─────┘                                           │
+│                               ▼                                                 │
+│                         ┌───────────┐                                           │
+│                         │ LayerNorm │                                           │
+│                         └─────┬─────┘                                           │
+│                               │                                                 │
+│   Output: y ◄─────────────────┘                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Cross-Modal Attention Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    CrossModalTransformerBlock Flow                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│        Tabular                                  Image                        │
+│   Features (T)                            Features (I)                       │
+│          │                                       │                           │
+│          │          ┌───────────────────────────┐│                           │
+│          │          │   CrossModalAttention     ││                           │
+│          ├─────────►│   Q: from T               ││                           │
+│          │          │   K,V: from I             │◄────────────────────────┤ │
+│          │          │   T attends to I          ││                        │ │
+│          │          └───────────┬───────────────┘│                        │ │
+│          │                      │                │                        │ │
+│          │◄─────────Add & Norm──┘                │                        │ │
+│          │                                       │                        │ │
+│          │          ┌───────────────────────────┐│                        │ │
+│          │          │       FeedForward         ││                        │ │
+│          │          │       (for T)             ││                        │ │
+│          │          └───────────┬───────────────┘│                        │ │
+│          │                      │                │                        │ │
+│          │◄─────────Add & Norm──┘                │                        │ │
+│          │                                       │                        │ │
+│          │          ┌───────────────────────────┐│                        │ │
+│          │          │   CrossModalAttention     ││                        │ │
+│          ├─────────►│   Q: from I               ││                        │ │
+│          │          │   K,V: from T             │├────────────────────────┘ │
+│          │          │   I attends to T          ││                          │
+│          │          └───────────┬───────────────┘│                          │
+│          │                      │                │                          │
+│          │                      └────────────────┼──Add & Norm──►│          │
+│          │                                       │               │          │
+│          │          ┌───────────────────────────┐│               │          │
+│          │          │       FeedForward         ││               │          │
+│          │          │       (for I)             ││               │          │
+│          │          └───────────┬───────────────┘│               │          │
+│          │                      │                │               │          │
+│          │                      └────────────────┼──Add & Norm──►│          │
+│          │                                       │               │          │
+│          ▼                                       ▼               ▼          │
+│   Updated T                               Updated I                         │
+│   (Attended to I)                        (Attended to T)                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ### 3. Training Pipeline
 - Multimodal batch training

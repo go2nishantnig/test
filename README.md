@@ -64,25 +64,36 @@ A TensorFlow-based multimodal transformer model for detecting fraudulent transac
 
 ```
 .
-├── config/                      # Configuration files
+├── config/                          # Configuration files
 │   ├── __init__.py
-│   └── config.py               # Model and training configuration
-├── data/                       # Data directory
-├── models/                     # Model storage
-│   └── saved_models/          # Trained models saved here
-├── logs/                       # Training logs
-├── notebooks/                  # Jupyter notebooks for experiments
-├── src/                        # Source code
+│   └── config.py                   # Model and training configuration
+├── data/                           # Data directory
+├── models/                         # Model storage
+│   └── saved_models/              # Trained models saved here
+├── logs/                           # Training logs
+├── notebooks/                      # Jupyter notebooks for experiments
+├── src/                            # Source code
 │   ├── __init__.py
-│   ├── models/                # Model architectures
-│   │   ├── __init__.py
-│   │   └── transformer_model.py
-│   ├── utils/                 # Utility functions
-│   │   ├── __init__.py
-│   │   └── data_preprocessing.py
-│   ├── train.py              # Training script
-│   └── predict.py            # Inference script
-└── requirements.txt           # Python dependencies
+│   ├── models/                    # Model architectures (modular)
+│   │   ├── __init__.py            # Package exports
+│   │   ├── attention.py           # Attention mechanisms
+│   │   ├── layers.py              # Core layers (FFN, Residual)
+│   │   ├── blocks.py              # Transformer blocks
+│   │   ├── embeddings.py          # Embedding layers
+│   │   ├── transformer.py         # Model builders
+│   │   └── transformer_model.py   # Legacy (backward compatible)
+│   ├── utils/                     # Utility functions (modular)
+│   │   ├── __init__.py            # Package exports
+│   │   ├── tabular_preprocessor.py     # Tabular data preprocessing
+│   │   ├── image_preprocessor.py       # QR code preprocessing
+│   │   ├── multimodal_preprocessor.py  # Combined preprocessing
+│   │   └── data_preprocessing.py       # Legacy (backward compatible)
+│   ├── train.py                  # Training script
+│   └── predict.py                # Inference script
+├── quick_start.py                 # Quick start demo
+├── requirements.txt               # Python dependencies
+├── README.md                      # This file
+└── SUMMARY.md                     # Project summary
 ```
 
 ## Installation
@@ -201,6 +212,76 @@ print(f"Fraud Probability: {result['fraud_probability']:.2%}")
 
 ## Model Architecture
 
+### Package Structure
+
+The codebase is organized into modular packages for better understanding and maintainability:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         src/models/ Package                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────────────┐    ┌─────────────────────┐                    │
+│  │    attention.py     │    │      layers.py      │                    │
+│  ├─────────────────────┤    ├─────────────────────┤                    │
+│  │ MultiHeadSelf       │    │ FeedForward         │                    │
+│  │   Attention         │    │ ResidualConnection  │                    │
+│  │ MaskedMultiHead     │    └─────────────────────┘                    │
+│  │   Attention         │                                                │
+│  │ CrossModalAttention │                                                │
+│  └─────────────────────┘                                                │
+│              │                         │                                │
+│              └────────────┬────────────┘                                │
+│                           ▼                                             │
+│              ┌─────────────────────┐                                    │
+│              │      blocks.py      │                                    │
+│              ├─────────────────────┤                                    │
+│              │ TransformerBlock    │                                    │
+│              │ TransformerDecoder  │                                    │
+│              │   Block             │                                    │
+│              │ CrossModalTrans     │                                    │
+│              │   formerBlock       │                                    │
+│              └─────────────────────┘                                    │
+│                           │                                             │
+│              ┌────────────┼────────────┐                               │
+│              ▼            ▼            ▼                               │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐        │
+│  │  embeddings.py  │  │  transformer.py  │  │ transformer_    │        │
+│  ├─────────────────┤  ├─────────────────┤  │   model.py      │        │
+│  │ PatchEmbedding  │  │ Multimodal      │  ├─────────────────┤        │
+│  └─────────────────┘  │   FraudDetect   │  │ (Legacy module  │        │
+│                       │   ionTransformer │  │  for backward   │        │
+│                       │ FraudDetection  │  │  compatibility) │        │
+│                       │   Transformer   │  └─────────────────┘        │
+│                       └─────────────────┘                              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         src/utils/ Package                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────────────────┐    ┌─────────────────────────┐            │
+│  │ tabular_preprocessor.py │    │  image_preprocessor.py  │            │
+│  ├─────────────────────────┤    ├─────────────────────────┤            │
+│  │ FraudDataPreprocessor   │    │ QRCodePreprocessor      │            │
+│  │ - generate_synthetic    │    │ - generate_synthetic    │            │
+│  │ - preprocess_data       │    │ - generate_qr_pattern   │            │
+│  │ - save/load_scaler      │    │ - load_images           │            │
+│  └─────────────────────────┘    └─────────────────────────┘            │
+│              │                             │                            │
+│              └──────────┬──────────────────┘                           │
+│                         ▼                                               │
+│            ┌─────────────────────────┐                                  │
+│            │multimodal_preprocessor.py│                                  │
+│            ├─────────────────────────┤                                  │
+│            │ MultimodalDataPreprocessor                                 │
+│            │ - generate_multimodal    │                                  │
+│            │ - preprocess_multimodal  │                                  │
+│            │ - prepare_train_test     │                                  │
+│            └─────────────────────────┘                                  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
 ### Transformer Components
 
 This implementation includes all standard transformer components:
@@ -242,6 +323,199 @@ This implementation includes all standard transformer components:
    - Global Average Pooling
    - Dense layers with dropout
    - Sigmoid output for binary classification
+
+### Detailed Class Flow Diagrams
+
+#### Attention Mechanism Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    MultiHeadSelfAttention Flow                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Input: x (batch_size, seq_len, d_model)                              │
+│                                                                         │
+│          ┌───────────┬───────────┬───────────┐                         │
+│          │    Wq     │    Wk     │    Wv     │                         │
+│          │  (Dense)  │  (Dense)  │  (Dense)  │                         │
+│          └─────┬─────┴─────┬─────┴─────┬─────┘                         │
+│                │           │           │                                │
+│                ▼           ▼           ▼                                │
+│          ┌─────────┐ ┌─────────┐ ┌─────────┐                           │
+│          │ Q       │ │ K       │ │ V       │                           │
+│          └────┬────┘ └────┬────┘ └────┬────┘                           │
+│               │           │           │                                 │
+│               └─────┬─────┴───────────┘                                │
+│                     │                                                   │
+│               ┌─────▼─────┐                                            │
+│               │ Split to  │                                            │
+│               │ num_heads │                                            │
+│               └─────┬─────┘                                            │
+│                     │                                                   │
+│               ┌─────▼─────────────────────────────┐                    │
+│               │ Scaled Dot-Product Attention      │                    │
+│               │ Attention(Q,K,V) = softmax(QK^T   │                    │
+│               │                    /√dk) · V      │                    │
+│               └─────────────┬─────────────────────┘                    │
+│                             │                                           │
+│               ┌─────────────▼─────────────┐                            │
+│               │ Concatenate heads         │                            │
+│               └─────────────┬─────────────┘                            │
+│                             │                                           │
+│               ┌─────────────▼─────────────┐                            │
+│               │ Output Projection (Dense) │                            │
+│               └─────────────┬─────────────┘                            │
+│                             │                                           │
+│   Output: (batch_size, seq_len, d_model)                               │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Transformer Block Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    TransformerBlock Flow                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Input: x (batch_size, seq_len, d_model)                              │
+│          │                                                              │
+│          ├───────────────────────────────────────────┐                 │
+│          │                                           │                 │
+│          ▼                                           │ (Residual)      │
+│   ┌──────────────────────────────┐                  │                 │
+│   │   MultiHeadSelfAttention     │                  │                 │
+│   └──────────────┬───────────────┘                  │                 │
+│                  │                                   │                 │
+│                  ▼                                   │                 │
+│   ┌──────────────────────────────┐                  │                 │
+│   │        Dropout               │                  │                 │
+│   └──────────────┬───────────────┘                  │                 │
+│                  │                                   │                 │
+│                  └───────────┬───────────────────────┘                 │
+│                              │                                          │
+│                              ▼                                          │
+│   ┌──────────────────────────────────────────────────┐                 │
+│   │              Add & LayerNorm                      │                 │
+│   └──────────────────────┬───────────────────────────┘                 │
+│                          │                                              │
+│                          ├───────────────────────────────┐             │
+│                          │                               │             │
+│                          ▼                               │ (Residual)  │
+│   ┌──────────────────────────────┐                      │             │
+│   │       FeedForward            │                      │             │
+│   │  (Dense → ReLU → Dense)      │                      │             │
+│   └──────────────┬───────────────┘                      │             │
+│                  │                                       │             │
+│                  ▼                                       │             │
+│   ┌──────────────────────────────┐                      │             │
+│   │        Dropout               │                      │             │
+│   └──────────────┬───────────────┘                      │             │
+│                  │                                       │             │
+│                  └─────────────┬─────────────────────────┘             │
+│                                │                                        │
+│                                ▼                                        │
+│   ┌──────────────────────────────────────────────────┐                 │
+│   │              Add & LayerNorm                      │                 │
+│   └──────────────────────┬───────────────────────────┘                 │
+│                          │                                              │
+│   Output: (batch_size, seq_len, d_model)                               │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Cross-Modal Transformer Block Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│              CrossModalTransformerBlock Flow                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Tabular Input                        Image Input                      │
+│        │                                    │                           │
+│        ├──────────────────────┐            ├──────────────────────┐    │
+│        │                      │            │                      │    │
+│        ▼                      │ (Res)      ▼                      │ (Res)
+│   ┌──────────────┐           │       ┌──────────────┐           │    │
+│   │ CrossModal   ├───────────│───────┤ CrossModal   │           │    │
+│   │ Attention    │ Q←Tab     │       │ Attention    │ Q←Img     │    │
+│   │ (Tab→Img)    │ K,V←Img   │       │ (Img→Tab)    │ K,V←Tab   │    │
+│   └──────┬───────┘           │       └──────┬───────┘           │    │
+│          │                   │              │                   │    │
+│          ▼                   │              ▼                   │    │
+│   ┌──────────────┐           │       ┌──────────────┐           │    │
+│   │   Dropout    │           │       │   Dropout    │           │    │
+│   └──────┬───────┘           │       └──────┬───────┘           │    │
+│          │                   │              │                   │    │
+│          └───────┬───────────┘              └───────┬───────────┘    │
+│                  ▼                                  ▼                 │
+│   ┌────────────────────┐            ┌────────────────────┐           │
+│   │   Add & LayerNorm  │            │   Add & LayerNorm  │           │
+│   └─────────┬──────────┘            └─────────┬──────────┘           │
+│             │                                  │                      │
+│             ├───────────────┐                  ├───────────────┐     │
+│             │               │(Res)             │               │(Res)│
+│             ▼               │                  ▼               │     │
+│   ┌──────────────┐          │       ┌──────────────┐          │     │
+│   │ FeedForward  │          │       │ FeedForward  │          │     │
+│   │  (Tabular)   │          │       │  (Image)     │          │     │
+│   └──────┬───────┘          │       └──────┬───────┘          │     │
+│          │                  │              │                  │     │
+│          ▼                  │              ▼                  │     │
+│   ┌──────────────┐          │       ┌──────────────┐          │     │
+│   │   Dropout    │          │       │   Dropout    │          │     │
+│   └──────┬───────┘          │       └──────┬───────┘          │     │
+│          │                  │              │                  │     │
+│          └────────┬─────────┘              └────────┬─────────┘     │
+│                   ▼                                 ▼                │
+│   ┌────────────────────┐            ┌────────────────────┐          │
+│   │   Add & LayerNorm  │            │   Add & LayerNorm  │          │
+│   └─────────┬──────────┘            └─────────┬──────────┘          │
+│             │                                  │                     │
+│   Tabular Output                       Image Output                  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Data Preprocessing Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     Data Preprocessing Pipeline                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   Raw Transaction Data              Raw QR Code Images                  │
+│   (CSV/DataFrame)                   (PNG/JPG files)                     │
+│        │                                    │                           │
+│        ▼                                    ▼                           │
+│   ┌──────────────────────┐          ┌──────────────────────┐           │
+│   │ FraudDataPreprocessor│          │  QRCodePreprocessor  │           │
+│   ├──────────────────────┤          ├──────────────────────┤           │
+│   │ 1. Encode categories │          │ 1. Load/resize images│           │
+│   │ 2. Drop ID columns   │          │ 2. Normalize [0,1]   │           │
+│   │ 3. Scale features    │          │ 3. Extract patches   │           │
+│   │ 4. Reshape for model │          └──────────┬───────────┘           │
+│   └──────────┬───────────┘                     │                        │
+│              │                                  │                        │
+│              └──────────────┬───────────────────┘                       │
+│                             │                                            │
+│                             ▼                                            │
+│              ┌──────────────────────────────┐                           │
+│              │ MultimodalDataPreprocessor   │                           │
+│              ├──────────────────────────────┤                           │
+│              │ 1. Combine modalities        │                           │
+│              │ 2. Align samples             │                           │
+│              │ 3. Create train/test splits  │                           │
+│              └──────────────┬───────────────┘                           │
+│                             │                                            │
+│              ┌──────────────┴───────────────┐                           │
+│              │                              │                            │
+│              ▼                              ▼                            │
+│   ┌─────────────────────┐      ┌─────────────────────┐                  │
+│   │ Training Data       │      │ Test Data           │                  │
+│   │ - X_train_tabular   │      │ - X_test_tabular    │                  │
+│   │ - X_train_images    │      │ - X_test_images     │                  │
+│   │ - y_train           │      │ - y_test            │                  │
+│   └─────────────────────┘      └─────────────────────┘                  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
 ## Configuration
 

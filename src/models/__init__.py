@@ -2,54 +2,74 @@
 """
 Transformer-based models for multimodal fraud detection.
 
-This module provides the following transformer components:
+This package provides modular transformer components organized into separate modules
+for better code organization and understanding.
 
-Attention Layers:
+Package Structure:
+==================
+src/models/
+├── __init__.py           # Package exports (this file)
+├── attention.py          # Attention mechanism implementations
+├── layers.py             # Core transformer layers (FFN, Residual)
+├── blocks.py             # Complete transformer blocks
+├── embeddings.py         # Embedding layers (PatchEmbedding)
+├── transformer.py        # Model builders
+└── transformer_model.py  # Legacy single-file module (backward compatible)
+
+Attention Layers (attention.py):
 - MultiHeadSelfAttention: Standard multi-head self-attention for encoder
 - MaskedMultiHeadAttention: Masked multi-head attention for decoder (causal masking)
 - CrossModalAttention: Cross multi-head attention for cross-modal fusion
 
-Core Components:
+Core Components (layers.py):
 - FeedForward: Position-wise feed-forward network
 - ResidualConnection: Residual connection with layer normalization (Add & Norm)
 
-Transformer Blocks:
+Transformer Blocks (blocks.py):
 - TransformerBlock: Complete transformer encoder block
 - TransformerDecoderBlock: Complete transformer decoder block with masked attention
 - CrossModalTransformerBlock: Cross-modal transformer block for multimodal fusion
 
-Image Processing:
+Image Processing (embeddings.py):
 - PatchEmbedding: Vision Transformer style patch embedding
 
-Complete Models:
+Complete Models (transformer.py):
 - MultimodalFraudDetectionTransformer: Multimodal model combining tabular and image data
 - FraudDetectionTransformer: Tabular-only model (backward compatible)
 """
 
-from src.models.transformer_model import (
-    # Attention layers
+# Import from new modular structure
+from src.models.attention import (
     MultiHeadSelfAttention,
     MaskedMultiHeadAttention,
     CrossModalAttention,
-    
-    # Core components
+    MASK_VALUE,
+)
+
+from src.models.layers import (
     FeedForward,
     ResidualConnection,
-    
-    # Transformer blocks
+)
+
+from src.models.blocks import (
     TransformerBlock,
     TransformerDecoderBlock,
     CrossModalTransformerBlock,
-    
-    # Image processing
+)
+
+from src.models.embeddings import (
     PatchEmbedding,
-    
-    # Complete models
+)
+
+from src.models.transformer import (
     MultimodalFraudDetectionTransformer,
     FraudDetectionTransformer,
 )
 
 __all__ = [
+    # Constants
+    'MASK_VALUE',
+    
     # Attention layers
     'MultiHeadSelfAttention',
     'MaskedMultiHeadAttention',
