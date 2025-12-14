@@ -127,6 +127,15 @@ This directory contains comprehensive PlantUML diagrams that document the archit
 
 ## How to Use These Diagrams
 
+### PlantUML Version Compatibility
+
+These diagrams are designed to work with PlantUML version 1.2020.02 and newer. They have been tested and successfully generate images. Some older PlantUML versions may show syntax warnings during validation, but the diagrams will still render correctly.
+
+For best results, use:
+- **PlantUML 1.2021.0 or newer** (recommended)
+- **Online PlantUML Server** (always up-to-date)
+- **VS Code PlantUML Extension** (uses latest version)
+
 ### Viewing PlantUML Diagrams
 
 You have several options to view these diagrams:
