@@ -2,6 +2,8 @@
 
 title Multimodal Fraud Detection - Package and Module Structure
 
+allowmixing
+
 skinparam packageStyle rectangle
 skinparam component {
     BackgroundColor LightBlue

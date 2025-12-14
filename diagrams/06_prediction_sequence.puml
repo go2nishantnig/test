@@ -133,7 +133,7 @@ note right of model
     5. Fast inference
 end note
 
-note bottom of predictor
+note over predictor
     **Preprocessing:**
     - Uses saved scaler (no refitting)
     - Same transformations as training

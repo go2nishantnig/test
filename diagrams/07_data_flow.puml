@@ -185,21 +185,19 @@ end note
 
 |Output|
 if (Fraud Probability > 0.5?) then (yes)
-    :Predict: FRAUD;
-    #pink
+    #pink:Predict: FRAUD;
 else (no)
-    :Predict: NORMAL;
-    #lightgreen
+    #lightgreen:Predict: NORMAL;
 endif
 
-stop
-
-note bottom
+note right
     **Data Dimensions Throughout Pipeline:**
     
     Tabular: [batch, 1, 8] → [batch, 1, 64] → [batch, 1, 64]
     Image: [batch, 128, 128, 3] → [batch, 64, 64] → [batch, 64, 64]
     Output: [batch, 1]
 end note
+
+stop
 
 @enduml
