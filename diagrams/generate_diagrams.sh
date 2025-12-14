@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Script to generate all PlantUML diagrams as PNG images
 # This helps verify that all diagrams are valid and can be rendered
 
