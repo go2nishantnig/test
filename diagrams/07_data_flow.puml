@@ -185,11 +185,9 @@ end note
 
 |Output|
 if (Fraud Probability > 0.5?) then (yes)
-    :Predict: FRAUD;
-    #pink
+    #pink:Predict: FRAUD;
 else (no)
-    :Predict: NORMAL;
-    #lightgreen
+    #lightgreen:Predict: NORMAL;
 endif
 
 stop

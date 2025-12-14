@@ -9,62 +9,62 @@ skinparam component {
 
 ' Multi-Head Self-Attention
 rectangle "MultiHeadSelfAttention" {
-    component [Input\n[batch, seq_len, d_model]] as mha_input
+    component "Input\n[batch, seq_len, d_model]" as mha_input
     
     rectangle "Linear Projections" {
-        component [Wq: Dense(d_model)] as wq
-        component [Wk: Dense(d_model)] as wk
-        component [Wv: Dense(d_model)] as wv
+        component "Wq: Dense(d_model)" as wq
+        component "Wk: Dense(d_model)" as wk
+        component "Wv: Dense(d_model)" as wv
     }
     
-    component [Q\n[batch, seq_len, d_model]] as q
-    component [K\n[batch, seq_len, d_model]] as k
-    component [V\n[batch, seq_len, d_model]] as v
+    component "Q\n[batch, seq_len, d_model]" as q
+    component "K\n[batch, seq_len, d_model]" as k
+    component "V\n[batch, seq_len, d_model]" as v
     
-    component [Split to num_heads\nReshape & Transpose] as split
+    component "Split to num_heads\nReshape & Transpose" as split
     
-    component [Q_heads\n[batch, heads, seq, depth]] as q_heads
-    component [K_heads\n[batch, heads, seq, depth]] as k_heads
-    component [V_heads\n[batch, heads, seq, depth]] as v_heads
+    component "Q_heads\n[batch, heads, seq, depth]" as q_heads
+    component "K_heads\n[batch, heads, seq, depth]" as k_heads
+    component "V_heads\n[batch, heads, seq, depth]" as v_heads
     
-    component [MatMul(Q, K^T)] as matmul_qk
-    component [QK^T\n[batch, heads, seq, seq]] as qk
+    component "MatMul(Q, K^T)" as matmul_qk
+    component "QK^T\n[batch, heads, seq, seq]" as qk
     
-    component [Scale by 1/√dk] as scale
+    component "Scale by 1/√dk" as scale
     
-    component [Softmax\n(attention weights)] as softmax
+    component "Softmax\n(attention weights)" as softmax
     
-    component [MatMul(weights, V)] as matmul_v
+    component "MatMul(weights, V)" as matmul_v
     
-    component [Attention Output\n[batch, heads, seq, depth]] as attn_out
+    component "Attention Output\n[batch, heads, seq, depth]" as attn_out
     
-    component [Concatenate heads\nReshape] as concat
+    component "Concatenate heads\nReshape" as concat
     
-    component [Output Projection\nDense(d_model)] as out_proj
+    component "Output Projection\nDense(d_model)" as out_proj
     
-    component [Output\n[batch, seq_len, d_model]] as mha_output
+    component "Output\n[batch, seq_len, d_model]" as mha_output
 }
 
 ' Cross-Modal Attention
 rectangle "CrossModalAttention" {
-    component [Query Input\n(Modality A)\n[batch, seq_a, d_model]] as cm_query_input
-    component [Key-Value Input\n(Modality B)\n[batch, seq_b, d_model]] as cm_kv_input
+    component "Query Input\n(Modality A)\n[batch, seq_a, d_model]" as cm_query_input
+    component "Key-Value Input\n(Modality B)\n[batch, seq_b, d_model]" as cm_kv_input
     
     rectangle "Linear Projections" as cm_proj {
-        component [Wq: Dense(d_model)] as cm_wq
-        component [Wk: Dense(d_model)] as cm_wk
-        component [Wv: Dense(d_model)] as cm_wv
+        component "Wq: Dense(d_model)" as cm_wq
+        component "Wk: Dense(d_model)" as cm_wk
+        component "Wv: Dense(d_model)" as cm_wv
     }
     
-    component [Q from A\n[batch, seq_a, d_model]] as cm_q
-    component [K from B\n[batch, seq_b, d_model]] as cm_k
-    component [V from B\n[batch, seq_b, d_model]] as cm_v
+    component "Q from A\n[batch, seq_a, d_model]" as cm_q
+    component "K from B\n[batch, seq_b, d_model]" as cm_k
+    component "V from B\n[batch, seq_b, d_model]" as cm_v
     
-    component [Split & Reshape] as cm_split
+    component "Split & Reshape" as cm_split
     
-    component [Scaled Dot-Product\nCross-Attention] as cm_attn
+    component "Scaled Dot-Product\nCross-Attention" as cm_attn
     
-    component [Cross-Modal Output\n[batch, seq_a, d_model]] as cm_output
+    component "Cross-Modal Output\n[batch, seq_a, d_model]" as cm_output
 }
 
 note right of cm_attn
@@ -88,13 +88,13 @@ end note
 
 ' Masked Multi-Head Attention
 rectangle "MaskedMultiHeadAttention" {
-    component [Input\n[batch, seq_len, d_model]] as masked_input
+    component "Input\n[batch, seq_len, d_model]" as masked_input
     
-    component [Create Look-Ahead Mask\nUpper triangular = -∞] as mask_create
+    component "Create Look-Ahead Mask\nUpper triangular = -∞" as mask_create
     
-    component [Q, K, V Projections] as masked_proj
+    component "Q, K, V Projections" as masked_proj
     
-    component [Scaled Dot-Product\n+ Add Mask] as masked_attn
+    component "Scaled Dot-Product\n+ Add Mask" as masked_attn
     
     note right of masked_attn
         **Causal Masking:**
@@ -108,7 +108,7 @@ rectangle "MaskedMultiHeadAttention" {
         Used in decoder blocks
     end note
     
-    component [Masked Output\n[batch, seq_len, d_model]] as masked_output
+    component "Masked Output\n[batch, seq_len, d_model]" as masked_output
 }
 
 ' Self-Attention Flow
