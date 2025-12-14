@@ -1446,16 +1446,16 @@ The system is designed with production deployment in mind, featuring:
 The detailed roadmap ensures continuous improvement through real-world data integration, model interpretability, additional modalities, and advanced techniques like federated learning and AutoML.
 
 For detailed visual representations of the architecture, refer to the PlantUML diagrams in this directory:
-- \`01_system_architecture.puml\` - High-level system overview
-- \`02_component_diagram.puml\` - Package structure
-- \`03_models_class_diagram.puml\` - Model classes
-- \`04_utils_class_diagram.puml\` - Utility classes
-- \`05_training_sequence.puml\` - Training workflow
-- \`06_prediction_sequence.puml\` - Inference workflow
-- \`07_data_flow.puml\` - Data transformations
-- \`08_architecture_detail.puml\` - Detailed layer view
-- \`09_attention_detail.puml\` - Attention mechanisms
-- \`10_deployment.puml\` - Production deployment
+- [01_system_architecture.puml](./01_system_architecture.puml) - High-level system overview
+- [02_component_diagram.puml](./02_component_diagram.puml) - Package structure
+- [03_models_class_diagram.puml](./03_models_class_diagram.puml) - Model classes
+- [04_utils_class_diagram.puml](./04_utils_class_diagram.puml) - Utility classes
+- [05_training_sequence.puml](./05_training_sequence.puml) - Training workflow
+- [06_prediction_sequence.puml](./06_prediction_sequence.puml) - Inference workflow
+- [07_data_flow.puml](./07_data_flow.puml) - Data transformations
+- [08_architecture_detail.puml](./08_architecture_detail.puml) - Detailed layer view
+- [09_attention_detail.puml](./09_attention_detail.puml) - Attention mechanisms
+- [10_deployment.puml](./10_deployment.puml) - Production deployment
 
 **Last Updated:** December 2024  
 **Version:** 1.0  
