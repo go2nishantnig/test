@@ -1,0 +1,112 @@
+@startuml Component Diagram
+
+title Multimodal Fraud Detection - Package and Module Structure
+
+skinparam packageStyle rectangle
+skinparam component {
+    BackgroundColor LightBlue
+    BorderColor DarkBlue
+}
+
+' Root Package
+package "Fraud Detection System" {
+    
+    ' Configuration Package
+    package "config" {
+        component [config.py\n- MODEL_CONFIG\n- TRAINING_CONFIG\n- Paths] as config
+    }
+    
+    ' Source Code Package
+    package "src" {
+        
+        ' Models Package
+        package "models" {
+            component [attention.py\n- MultiHeadSelfAttention\n- MaskedMultiHeadAttention\n- CrossModalAttention] as attention
+            
+            component [layers.py\n- FeedForward\n- ResidualConnection] as layers
+            
+            component [blocks.py\n- TransformerBlock\n- TransformerDecoderBlock\n- CrossModalTransformerBlock] as blocks
+            
+            component [embeddings.py\n- PatchEmbedding] as embeddings
+            
+            component [transformer.py\n- MultimodalFraudDetectionTransformer\n- FraudDetectionTransformer] as transformer
+            
+            component [transformer_model.py\n(Legacy - Backward Compatible)] as legacy_model
+        }
+        
+        ' Utils Package
+        package "utils" {
+            component [tabular_preprocessor.py\n- FraudDataPreprocessor\n- generate_synthetic_data\n- preprocess_data] as tab_preproc
+            
+            component [image_preprocessor.py\n- QRCodePreprocessor\n- generate_synthetic_images\n- preprocess_images] as img_preproc
+            
+            component [multimodal_preprocessor.py\n- MultimodalDataPreprocessor\n- prepare_train_test_data] as multi_preproc
+            
+            component [data_preprocessing.py\n(Legacy - Backward Compatible)] as legacy_utils
+        }
+        
+        ' Main Scripts
+        component [train.py\n- train_multimodal_model()\n- train_tabular_model()] as train
+        
+        component [predict.py\n- MultimodalFraudDetectionPredictor\n- FraudDetectionPredictor] as predict
+    }
+    
+    ' Entry Points
+    component [quick_start.py\n- Multimodal Demo\n- Tabular Demo] as quickstart
+    
+    ' Data Storage
+    database [data/\n- CSV files\n- QR code images] as data_storage
+    
+    database [models/saved_models/\n- Trained models\n- Preprocessors] as model_storage
+    
+    database [logs/\n- TensorBoard logs\n- Training history] as logs
+}
+
+' Dependencies - Models Package Internal
+attention --> layers : "uses"
+layers --> blocks : "uses"
+blocks --> attention : "uses"
+embeddings --> blocks : "uses"
+transformer --> blocks : "uses"
+transformer --> embeddings : "uses"
+
+' Dependencies - Utils Package Internal
+tab_preproc --> multi_preproc : "uses"
+img_preproc --> multi_preproc : "uses"
+
+' Dependencies - Cross Package
+train --> config : "imports"
+train --> transformer : "imports"
+train --> multi_preproc : "imports"
+train --> model_storage : "saves to"
+train --> logs : "writes to"
+
+predict --> config : "imports"
+predict --> transformer : "imports"
+predict --> multi_preproc : "imports"
+predict --> model_storage : "loads from"
+
+quickstart --> train : "calls"
+quickstart --> predict : "calls"
+quickstart --> config : "imports"
+
+multi_preproc --> data_storage : "loads from"
+
+' Legacy Components
+legacy_model .up.|> transformer : "<<compatible>>"
+legacy_utils .up.|> multi_preproc : "<<compatible>>"
+
+note right of legacy_model
+    Maintained for backward
+    compatibility with
+    existing code
+end note
+
+note bottom of model_storage
+    Stores:
+    - Trained Keras models (.keras)
+    - Scalers (pickle)
+    - Preprocessor state
+end note
+
+@enduml

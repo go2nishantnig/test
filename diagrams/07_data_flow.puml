@@ -1,0 +1,205 @@
+@startuml Data Flow Diagram
+
+title Data Flow - Multimodal Fraud Detection Pipeline
+
+skinparam activity {
+    BackgroundColor LightBlue
+    BorderColor DarkBlue
+    ArrowColor Black
+}
+
+|Input Sources|
+start
+:Raw Transaction Data
+(CSV/DataFrame);
+note right
+    **Features:**
+    - step
+    - type (PAYMENT, TRANSFER, etc.)
+    - amount
+    - nameOrig
+    - oldbalanceOrg
+    - newbalanceOrig
+    - nameDest
+    - oldbalanceDest
+    - newbalanceDest
+    - isFlaggedFraud
+    - isFraud (label)
+end note
+
+:Raw QR Code Images
+(PNG/JPG files);
+note right
+    **Characteristics:**
+    - Variable sizes
+    - RGB format
+    - Benign/Malicious
+    - Directory structure
+end note
+
+|Tabular Processing|
+:FraudDataPreprocessor|
+
+:Encode categorical features
+(type → numeric);
+
+:Drop ID columns
+(nameOrig, nameDest);
+
+:Standardize numerical features
+(StandardScaler);
+
+:Reshape for transformer
+(batch, seq_len, features);
+
+:Processed Tabular Data
+[batch, 1, 8];
+note right
+    **8 Features:**
+    1. step
+    2. type (encoded)
+    3. amount (scaled)
+    4. oldbalanceOrg (scaled)
+    5. newbalanceOrig (scaled)
+    6. oldbalanceDest (scaled)
+    7. newbalanceDest (scaled)
+    8. isFlaggedFraud
+end note
+
+|Image Processing|
+:QRCodePreprocessor|
+
+:Load/Resize images
+to (128, 128, 3);
+
+:Normalize pixel values
+to [0, 1];
+
+:Processed Image Data
+[batch, 128, 128, 3];
+
+|Multimodal Integration|
+:MultimodalDataPreprocessor|
+
+:Align samples
+(ensure same count);
+
+:Create train/test split
+(80/20);
+
+split
+    :Training Set
+    - X_train_tabular
+    - X_train_images
+    - y_train;
+split again
+    :Test Set
+    - X_test_tabular
+    - X_test_images
+    - y_test;
+end split
+
+|Model Encoding|
+fork
+    :Tabular Branch|
+    
+    :Feature Embedding
+    [batch, 1, 64];
+    
+    :Positional Encoding;
+    
+    :Transformer Blocks (×2)
+    - MultiHeadSelfAttention
+    - FeedForward
+    - Residual Connections;
+    
+    :Tabular Features
+    [batch, 1, 64];
+    
+fork again
+    :Image Branch|
+    
+    :Patch Embedding
+    16×16 patches → 64 patches;
+    
+    :Linear Projection
+    [batch, 64, 64];
+    
+    :Positional Encoding;
+    
+    :Transformer Blocks (×2)
+    - MultiHeadSelfAttention
+    - FeedForward
+    - Residual Connections;
+    
+    :Image Features
+    [batch, 64, 64];
+end fork
+
+|Cross-Modal Fusion|
+:Cross-Modal Transformer Blocks (×2)|
+
+:CrossModalAttention
+Tabular → Image
+(Q from tab, K,V from img);
+
+:CrossModalAttention
+Image → Tabular
+(Q from img, K,V from tab);
+
+:FeedForward Networks
+for both modalities;
+
+fork
+    :Enhanced Tabular
+    [batch, 1, 64];
+fork again
+    :Enhanced Image
+    [batch, 64, 64];
+end fork
+
+|Classification|
+:Concatenate or Pool
+features;
+
+:Global Average Pooling;
+
+:Dense Layer (128)
++ ReLU + Dropout;
+
+:Dense Layer (64)
++ ReLU + Dropout;
+
+:Dense Layer (1)
++ Sigmoid;
+
+:Fraud Probability
+[batch, 1];
+note right
+    **Output:**
+    - Value in [0, 1]
+    - Threshold: 0.5
+    - > 0.5 = Fraud
+    - ≤ 0.5 = Normal
+end note
+
+|Output|
+if (Fraud Probability > 0.5?) then (yes)
+    :Predict: FRAUD;
+    #pink
+else (no)
+    :Predict: NORMAL;
+    #lightgreen
+endif
+
+stop
+
+note bottom
+    **Data Dimensions Throughout Pipeline:**
+    
+    Tabular: [batch, 1, 8] → [batch, 1, 64] → [batch, 1, 64]
+    Image: [batch, 128, 128, 3] → [batch, 64, 64] → [batch, 64, 64]
+    Output: [batch, 1]
+end note
+
+@enduml

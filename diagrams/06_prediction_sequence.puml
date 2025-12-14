@@ -1,0 +1,143 @@
+@startuml Prediction Flow Sequence
+
+title Prediction Flow - Multimodal Fraud Detection Inference
+
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor User
+participant "predict.py" as predict
+participant "MultimodalFraudDetectionPredictor" as predictor
+participant "Config" as config
+database "Model Storage" as storage
+participant "Keras Model" as model
+participant "MultimodalDataPreprocessor" as preprocessor
+participant "FraudDataPreprocessor" as tab_prep
+participant "QRCodePreprocessor" as img_prep
+
+User -> predict : python predict.py --mode multimodal
+
+activate predict
+
+predict -> predictor : Create MultimodalFraudDetectionPredictor()
+activate predictor
+
+predictor -> config : Load MODEL_SAVE_DIR, MODEL_NAME
+config --> predictor : Model path
+
+predictor -> storage : Load saved model (.keras)
+activate storage
+storage --> predictor : Keras model loaded
+deactivate storage
+
+predictor -> storage : Load saved preprocessor (pickle)
+activate storage
+storage -> preprocessor : Load MultimodalDataPreprocessor
+preprocessor -> tab_prep : Load FraudDataPreprocessor state
+preprocessor -> img_prep : Load QRCodePreprocessor state
+storage --> predictor : Preprocessor loaded
+deactivate storage
+
+predictor --> predict : Predictor ready
+deactivate predictor
+
+' Single transaction prediction
+predict -> predictor : predict_single_transaction(tabular_features, image)
+activate predictor
+
+predictor -> tab_prep : preprocess_data(tabular_features, fit_scaler=False)
+tab_prep --> predictor : X_tabular_processed
+
+predictor -> img_prep : preprocess_images(image)
+img_prep --> predictor : X_image_processed
+
+predictor -> model : predict([X_tabular, X_image])
+activate model
+
+' Forward pass through model
+model -> model : Tabular Encoder
+note right
+    - Feature embedding
+    - Positional encoding
+    - Transformer blocks
+end note
+
+model -> model : Image Encoder
+note right
+    - Patch embedding
+    - Positional encoding
+    - Transformer blocks (ViT)
+end note
+
+model -> model : Cross-Modal Fusion
+note right
+    - CrossModalAttention (Tab→Img)
+    - CrossModalAttention (Img→Tab)
+    - Bidirectional information flow
+end note
+
+model -> model : Classification Head
+note right
+    - Global average pooling
+    - Dense layers
+    - Sigmoid activation
+end note
+
+model --> predictor : fraud_probability
+deactivate model
+
+predictor -> predictor : Determine is_fraud (threshold = 0.5)
+predictor -> predictor : Format result
+
+predictor --> predict : {\n  'is_fraud': bool,\n  'fraud_probability': float,\n  'confidence': float\n}
+deactivate predictor
+
+predict --> User : Prediction result
+
+' Batch prediction flow
+User -> predict : Predict batch of transactions
+
+predict -> predictor : predict_batch(tabular_batch, image_batch)
+activate predictor
+
+loop For each transaction
+    predictor -> tab_prep : preprocess_data(transaction)
+    predictor -> img_prep : preprocess_images(qr_code)
+end
+
+predictor -> model : predict([X_tabular_batch, X_image_batch])
+model --> predictor : fraud_probabilities[]
+
+predictor -> predictor : Format batch results
+predictor --> predict : List of predictions
+deactivate predictor
+
+predict --> User : Batch predictions
+
+deactivate predict
+
+note left of storage
+    **Saved Artifacts:**
+    - Trained Keras model (.keras)
+    - Preprocessor state (pickle)
+    - Feature scaler
+    - Label encoder
+end note
+
+note right of model
+    **Model Inference:**
+    1. Load pre-trained weights
+    2. Process input through all layers
+    3. Generate fraud probability
+    4. No gradient computation
+    5. Fast inference
+end note
+
+note bottom of predictor
+    **Preprocessing:**
+    - Uses saved scaler (no refitting)
+    - Same transformations as training
+    - Ensures consistency
+end note
+
+@enduml
