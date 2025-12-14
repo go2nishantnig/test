@@ -1,0 +1,183 @@
+@startuml Model Architecture Detail
+
+title Multimodal Transformer Architecture - Detailed Layer View
+
+skinparam component {
+    BackgroundColor LightBlue
+    BorderColor DarkBlue
+}
+
+rectangle "Input Layer" {
+    component [Tabular Input\n[batch, 1, 8]] as tab_input
+    component [Image Input\n[batch, 128, 128, 3]] as img_input
+}
+
+rectangle "Tabular Encoder Branch" {
+    component [Dense Projection\n[batch, 1, 64]] as tab_proj
+    component [Positional Encoding\n+ [1, 1, 64]] as tab_pos
+    
+    rectangle "Transformer Block 1" as tab_block1 {
+        component [MultiHeadSelfAttention\nheads=4, d_model=64] as tab_mha1
+        component [Add & LayerNorm] as tab_norm1
+        component [FeedForward\ndff=128] as tab_ff1
+        component [Add & LayerNorm] as tab_norm2
+    }
+    
+    rectangle "Transformer Block 2" as tab_block2 {
+        component [MultiHeadSelfAttention\nheads=4, d_model=64] as tab_mha2
+        component [Add & LayerNorm] as tab_norm3
+        component [FeedForward\ndff=128] as tab_ff2
+        component [Add & LayerNorm] as tab_norm4
+    }
+    
+    component [Tabular Features\n[batch, 1, 64]] as tab_feat
+}
+
+rectangle "Image Encoder Branch (ViT)" {
+    component [Patch Embedding\npatch_size=16\n64 patches] as img_patch
+    component [Linear Projection\n[batch, 64, 64]] as img_proj
+    component [Positional Encoding\n+ [1, 64, 64]] as img_pos
+    
+    rectangle "Transformer Block 1" as img_block1 {
+        component [MultiHeadSelfAttention\nheads=4, d_model=64] as img_mha1
+        component [Add & LayerNorm] as img_norm1
+        component [FeedForward\ndff=128] as img_ff1
+        component [Add & LayerNorm] as img_norm2
+    }
+    
+    rectangle "Transformer Block 2" as img_block2 {
+        component [MultiHeadSelfAttention\nheads=4, d_model=64] as img_mha2
+        component [Add & LayerNorm] as img_norm3
+        component [FeedForward\ndff=128] as img_ff2
+        component [Add & LayerNorm] as img_norm4
+    }
+    
+    component [Image Features\n[batch, 64, 64]] as img_feat
+}
+
+rectangle "Cross-Modal Fusion Layer" {
+    rectangle "Cross-Modal Block 1" as cm_block1 {
+        component [CrossModalAttention\nTab→Img\nQ:tab, K,V:img] as cm_tab_img1
+        component [CrossModalAttention\nImg→Tab\nQ:img, K,V:tab] as cm_img_tab1
+        component [Add & LayerNorm\n(Tabular)] as cm_norm_t1
+        component [Add & LayerNorm\n(Image)] as cm_norm_i1
+        component [FeedForward\n(Tabular)] as cm_ff_t1
+        component [FeedForward\n(Image)] as cm_ff_i1
+        component [Add & LayerNorm\n(Tabular)] as cm_norm_t2
+        component [Add & LayerNorm\n(Image)] as cm_norm_i2
+    }
+    
+    rectangle "Cross-Modal Block 2" as cm_block2 {
+        component [CrossModalAttention\nTab→Img] as cm_tab_img2
+        component [CrossModalAttention\nImg→Tab] as cm_img_tab2
+        component [Add & LayerNorm\n(Tabular)] as cm_norm_t3
+        component [Add & LayerNorm\n(Image)] as cm_norm_i3
+        component [FeedForward\n(Tabular)] as cm_ff_t2
+        component [FeedForward\n(Image)] as cm_ff_i2
+        component [Add & LayerNorm\n(Tabular)] as cm_norm_t4
+        component [Add & LayerNorm\n(Image)] as cm_norm_i4
+    }
+    
+    component [Fused Tabular\n[batch, 1, 64]] as fused_tab
+    component [Fused Image\n[batch, 64, 64]] as fused_img
+}
+
+rectangle "Classification Head" {
+    component [Concatenate\n[batch, 65, 64]] as concat
+    component [Global Average Pooling\n[batch, 64]] as pool
+    component [Dense(128) + ReLU\n+ Dropout(0.3)] as dense1
+    component [Dense(64) + ReLU\n+ Dropout(0.3)] as dense2
+    component [Dense(1) + Sigmoid] as output
+}
+
+component [Fraud Probability\n[batch, 1]] as final_output
+
+' Data flow - Tabular Branch
+tab_input --> tab_proj
+tab_proj --> tab_pos
+tab_pos --> tab_mha1
+tab_mha1 --> tab_norm1
+tab_norm1 --> tab_ff1
+tab_ff1 --> tab_norm2
+tab_norm2 --> tab_mha2
+tab_mha2 --> tab_norm3
+tab_norm3 --> tab_ff2
+tab_ff2 --> tab_norm4
+tab_norm4 --> tab_feat
+
+' Data flow - Image Branch
+img_input --> img_patch
+img_patch --> img_proj
+img_proj --> img_pos
+img_pos --> img_mha1
+img_mha1 --> img_norm1
+img_norm1 --> img_ff1
+img_ff1 --> img_norm2
+img_norm2 --> img_mha2
+img_mha2 --> img_norm3
+img_norm3 --> img_ff2
+img_ff2 --> img_norm4
+img_norm4 --> img_feat
+
+' Cross-Modal Fusion
+tab_feat --> cm_tab_img1
+img_feat --> cm_img_tab1
+img_feat --> cm_tab_img1
+tab_feat --> cm_img_tab1
+
+cm_tab_img1 --> cm_norm_t1
+cm_img_tab1 --> cm_norm_i1
+cm_norm_t1 --> cm_ff_t1
+cm_norm_i1 --> cm_ff_i1
+cm_ff_t1 --> cm_norm_t2
+cm_ff_i1 --> cm_norm_i2
+
+cm_norm_t2 --> cm_tab_img2
+cm_norm_i2 --> cm_img_tab2
+cm_norm_i2 --> cm_tab_img2
+cm_norm_t2 --> cm_img_tab2
+
+cm_tab_img2 --> cm_norm_t3
+cm_img_tab2 --> cm_norm_i3
+cm_norm_t3 --> cm_ff_t2
+cm_norm_i3 --> cm_ff_i2
+cm_ff_t2 --> cm_norm_t4
+cm_ff_i2 --> cm_norm_i4
+
+cm_norm_t4 --> fused_tab
+cm_norm_i4 --> fused_img
+
+' Classification
+fused_tab --> concat
+fused_img --> concat
+concat --> pool
+pool --> dense1
+dense1 --> dense2
+dense2 --> output
+output --> final_output
+
+note right of tab_mha1
+    **Self-Attention:**
+    Attention(Q,K,V) = 
+    softmax(QK^T/√dk)V
+    
+    Allows each position
+    to attend to all positions
+end note
+
+note right of cm_tab_img1
+    **Cross-Modal Attention:**
+    - Q from Tabular
+    - K, V from Image
+    - Allows tabular features
+      to attend to image features
+end note
+
+note bottom of concat
+    **Fusion Strategy:**
+    Concatenate tabular (1 token)
+    and image (64 tokens) features,
+    then pool to fixed size
+end note
+
+@enduml

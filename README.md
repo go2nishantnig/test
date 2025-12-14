@@ -68,6 +68,10 @@ A TensorFlow-based multimodal transformer model for detecting fraudulent transac
 │   ├── __init__.py
 │   └── config.py                   # Model and training configuration
 ├── data/                           # Data directory
+├── diagrams/                        # PlantUML architecture diagrams
+│   ├── *.puml                      # PlantUML source files
+│   ├── README.md                   # Diagrams documentation
+│   └── generate_diagrams.sh        # Script to generate diagram images
 ├── models/                         # Model storage
 │   └── saved_models/              # Trained models saved here
 ├── logs/                           # Training logs
@@ -95,6 +99,20 @@ A TensorFlow-based multimodal transformer model for detecting fraudulent transac
 ├── README.md                      # This file
 └── SUMMARY.md                     # Project summary
 ```
+
+## Architecture Diagrams
+
+Comprehensive PlantUML diagrams are available in the [`diagrams/`](diagrams/) folder, documenting:
+
+- **System Architecture**: High-level overview of components and data flow
+- **Component Structure**: Package and module organization
+- **Class Diagrams**: Detailed class hierarchies for models and utilities
+- **Sequence Diagrams**: Training and prediction workflows
+- **Data Flow**: End-to-end data transformation pipeline
+- **Attention Mechanisms**: Detailed view of self-attention and cross-modal attention
+- **Deployment Architecture**: Production deployment options
+
+See [`diagrams/README.md`](diagrams/README.md) for details on viewing and generating these diagrams.
 
 ## Installation
 

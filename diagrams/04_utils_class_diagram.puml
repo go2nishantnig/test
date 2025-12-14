@@ -1,0 +1,137 @@
+@startuml Utils Package Class Diagram
+
+title Utils Package - Data Preprocessing Classes
+
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor LightCoral
+    BorderColor DarkRed
+    ArrowColor Black
+}
+
+' Tabular Preprocessor
+package "tabular_preprocessor.py" {
+    class FraudDataPreprocessor {
+        - scaler: StandardScaler
+        - label_encoder: LabelEncoder
+        - feature_names: list
+        + __init__()
+        + generate_synthetic_fraud_data(n_samples)
+        + preprocess_data(X, y, fit_scaler)
+        + save_scaler(filepath)
+        + load_scaler(filepath)
+        + get_feature_names()
+    }
+    
+    note right of FraudDataPreprocessor
+        Handles tabular transaction data:
+        - Encodes categorical features (type)
+        - Drops ID columns (nameOrig, nameDest)
+        - Scales numerical features
+        - Reshapes for transformer input
+    end note
+}
+
+' Image Preprocessor
+package "image_preprocessor.py" {
+    class QRCodePreprocessor {
+        - image_size: tuple
+        + __init__(image_size)
+        + generate_synthetic_qr_images(n_samples)
+        + generate_qr_pattern(is_malicious)
+        + load_and_preprocess_image(image_path)
+        + preprocess_images(image_paths)
+        + load_images_from_directory(directory)
+    }
+    
+    note right of QRCodePreprocessor
+        Handles QR code image data:
+        - Resizes to target dimensions
+        - Normalizes pixel values [0, 1]
+        - Generates synthetic QR patterns
+        - Loads from directory structure
+    end note
+}
+
+' Multimodal Preprocessor
+package "multimodal_preprocessor.py" {
+    class MultimodalDataPreprocessor {
+        - tabular_preprocessor: FraudDataPreprocessor
+        - image_preprocessor: QRCodePreprocessor
+        - image_size: tuple
+        + __init__(image_size)
+        + generate_multimodal_synthetic_data(n_samples)
+        + preprocess_multimodal_data(X_tabular, X_images, y, fit_scaler)
+        + prepare_train_test_data(test_size, n_samples)
+        + save_preprocessor(filepath)
+        + load_preprocessor(filepath)
+    }
+    
+    note bottom of MultimodalDataPreprocessor
+        Combines both modalities:
+        - Aligns tabular and image samples
+        - Creates train/test splits
+        - Manages both preprocessors
+        - Handles synthetic data generation
+    end note
+}
+
+' Legacy Preprocessor
+package "data_preprocessing.py" {
+    class "Legacy Functions" as legacy {
+        + generate_synthetic_data()
+        + preprocess_data()
+        (Backward Compatible)
+    }
+}
+
+' Relationships - Composition
+MultimodalDataPreprocessor *-- FraudDataPreprocessor : "contains"
+MultimodalDataPreprocessor *-- QRCodePreprocessor : "contains"
+
+' Usage relationships
+MultimodalDataPreprocessor ..> FraudDataPreprocessor : "uses"
+MultimodalDataPreprocessor ..> QRCodePreprocessor : "uses"
+
+' External dependencies
+FraudDataPreprocessor ..> "StandardScaler" : "uses"
+FraudDataPreprocessor ..> "LabelEncoder" : "uses"
+MultimodalDataPreprocessor ..> "train_test_split" : "uses"
+
+' Legacy compatibility
+legacy .up.|> MultimodalDataPreprocessor : "<<compatible>>"
+
+' Additional Details Classes
+class "Synthetic Data Generation" as synthetic {
+    **Tabular:**
+    - Transaction amounts
+    - Balance changes
+    - Transaction types
+    - Fraud labels
+    
+    **Images:**
+    - QR code patterns
+    - Benign vs Malicious
+    - Complexity variations
+}
+
+class "Data Flow" as flow {
+    **Input:**
+    - Raw CSV/DataFrame
+    - Image files/directories
+    
+    **Processing:**
+    - Encoding
+    - Scaling
+    - Normalization
+    
+    **Output:**
+    - NumPy arrays
+    - Preprocessed features
+    - Train/test splits
+}
+
+MultimodalDataPreprocessor ..> synthetic : "generates"
+MultimodalDataPreprocessor ..> flow : "implements"
+
+@enduml

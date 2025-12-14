@@ -1,0 +1,203 @@
+@startuml Deployment Diagram
+
+title Deployment Architecture - Production Environment
+
+skinparam node {
+    BackgroundColor LightBlue
+    BorderColor DarkBlue
+}
+
+skinparam component {
+    BackgroundColor LightGreen
+    BorderColor DarkGreen
+}
+
+actor "End User" as user
+actor "Data Scientist" as ds
+
+' Client Layer
+node "Client Applications" {
+    component [Web Application] as webapp
+    component [Mobile App] as mobileapp
+    component [API Client] as apiclient
+}
+
+' API Gateway/Load Balancer
+node "API Gateway" {
+    component [Load Balancer] as lb
+    component [Authentication\nService] as auth
+}
+
+' Application Servers
+cloud "Application Cluster" {
+    node "App Server 1" {
+        component [Flask/FastAPI\nREST API] as api1
+        component [predict.py\nPredictor Service] as pred1
+    }
+    
+    node "App Server 2" {
+        component [Flask/FastAPI\nREST API] as api2
+        component [predict.py\nPredictor Service] as pred2
+    }
+    
+    node "App Server N" {
+        component [Flask/FastAPI\nREST API] as apiN
+        component [predict.py\nPredictor Service] as predN
+    }
+}
+
+' Model Serving Layer
+node "Model Serving Infrastructure" {
+    component [TensorFlow Serving\nor\nKeras Model] as model_server
+    
+    database [Model Storage\n.keras files] as model_storage
+    
+    database [Preprocessor Storage\n.pkl files] as preproc_storage
+}
+
+' Data Processing
+node "Data Processing Pipeline" {
+    component [FraudDataPreprocessor] as tab_proc
+    component [QRCodePreprocessor] as img_proc
+    component [MultimodalDataPreprocessor] as multi_proc
+}
+
+' Training Infrastructure
+node "Training Server\n(GPU-enabled)" {
+    component [train.py\nTraining Pipeline] as trainer
+    component [TensorFlow/Keras\nGPU Support] as tf_gpu
+}
+
+' Data Storage
+cloud "Data Layer" {
+    database "Transaction Database\n(PostgreSQL/MySQL)" as txn_db
+    database "Image Storage\n(S3/MinIO)" as img_storage
+    database "Training Data\nLake" as data_lake
+}
+
+' Monitoring & Logging
+node "Monitoring Infrastructure" {
+    component [TensorBoard] as tensorboard
+    component [Application Logs] as app_logs
+    component [Metrics Dashboard\n(Grafana)] as grafana
+    database [Log Storage\n(ELK Stack)] as elk
+}
+
+' Configuration Management
+node "Configuration Server" {
+    component [config.py] as config
+    database [Environment\nVariables] as env_vars
+}
+
+' Relationships - User to Application
+user --> webapp : "Access"
+user --> mobileapp : "Access"
+user --> apiclient : "Access"
+
+webapp --> lb : "HTTPS"
+mobileapp --> lb : "HTTPS"
+apiclient --> lb : "HTTPS"
+
+lb --> auth : "Authenticate"
+auth --> lb : "Token"
+
+' Load Balancer to App Servers
+lb --> api1 : "Route"
+lb --> api2 : "Route"
+lb --> apiN : "Route"
+
+' App Servers to Services
+api1 --> pred1 : "Call"
+api2 --> pred2 : "Call"
+apiN --> predN : "Call"
+
+pred1 --> model_server : "Predict"
+pred2 --> model_server : "Predict"
+predN --> model_server : "Predict"
+
+' Model Serving
+model_server --> model_storage : "Load Model"
+model_server --> preproc_storage : "Load Preprocessor"
+
+' Data Processing
+pred1 --> tab_proc : "Use"
+pred1 --> img_proc : "Use"
+pred2 --> multi_proc : "Use"
+
+' Training Flow
+ds --> trainer : "Trigger Training"
+trainer --> tf_gpu : "Use GPU"
+trainer --> data_lake : "Load Data"
+trainer --> model_storage : "Save Model"
+trainer --> preproc_storage : "Save Preprocessor"
+
+' Data Sources
+api1 --> txn_db : "Query Transactions"
+api1 --> img_storage : "Fetch QR Codes"
+trainer --> txn_db : "Training Data"
+trainer --> img_storage : "Training Images"
+
+' Configuration
+config --> api1 : "Configure"
+config --> api2 : "Configure"
+config --> trainer : "Configure"
+config --> env_vars : "Load"
+
+' Monitoring
+api1 --> app_logs : "Write Logs"
+api2 --> app_logs : "Write Logs"
+trainer --> tensorboard : "Training Metrics"
+app_logs --> elk : "Aggregate"
+tensorboard --> grafana : "Metrics"
+elk --> grafana : "Display"
+
+ds --> grafana : "Monitor"
+ds --> tensorboard : "View Training"
+
+note right of model_server
+    **Model Serving Options:**
+    
+    1. TensorFlow Serving
+       - High performance
+       - gRPC/REST API
+       - Model versioning
+    
+    2. Direct Keras Loading
+       - Simple deployment
+       - In-process serving
+       - Lower latency for small loads
+    
+    3. TorchServe (if converted)
+       - Alternative serving
+end note
+
+note bottom of trainer
+    **Training Infrastructure:**
+    
+    - GPU-enabled (NVIDIA)
+    - CUDA/cuDNN
+    - Batch processing
+    - Scheduled retraining
+    - Model versioning
+    - A/B testing support
+end note
+
+note left of lb
+    **Scalability:**
+    
+    - Horizontal scaling
+    - Auto-scaling based on load
+    - Health checks
+    - SSL/TLS termination
+    - Rate limiting
+end note
+
+note top of txn_db
+    **Data Sources:**
+    
+    Real-time transaction streams
+    Historical transaction data
+    QR code image repository
+end note
+
+@enduml

@@ -63,3 +63,8 @@ Thumbs.db
 # Models - trained models are saved here but excluded from git
 models/saved_models/
 models/logs/
+
+# PlantUML generated images (keep source .puml files only)
+diagrams/*.png
+diagrams/*.svg
+diagrams/*.eps

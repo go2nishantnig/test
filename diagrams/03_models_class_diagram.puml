@@ -1,0 +1,213 @@
+@startuml Models Package Class Diagram
+
+title Models Package - Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor LightBlue
+    BorderColor DarkBlue
+    ArrowColor Black
+}
+
+' Attention Classes
+package "attention.py" {
+    class MultiHeadSelfAttention {
+        - d_model: int
+        - num_heads: int
+        - depth: int
+        - wq: Dense
+        - wk: Dense
+        - wv: Dense
+        - dense: Dense
+        + __init__(d_model, num_heads)
+        + split_heads(x, batch_size)
+        + call(inputs)
+        + get_config()
+    }
+    
+    class MaskedMultiHeadAttention {
+        - d_model: int
+        - num_heads: int
+        - depth: int
+        - wq: Dense
+        - wk: Dense
+        - wv: Dense
+        - dense: Dense
+        + __init__(d_model, num_heads)
+        + split_heads(x, batch_size)
+        + call(inputs, mask=None)
+        + create_look_ahead_mask(size)
+        + get_config()
+    }
+    
+    class CrossModalAttention {
+        - d_model: int
+        - num_heads: int
+        - depth: int
+        - wq: Dense
+        - wk: Dense
+        - wv: Dense
+        - dense: Dense
+        + __init__(d_model, num_heads)
+        + split_heads(x, batch_size)
+        + call(query_input, key_value_input)
+        + get_config()
+    }
+}
+
+' Layer Classes
+package "layers.py" {
+    class FeedForward {
+        - dff: int
+        - d_model: int
+        - dense1: Dense
+        - dense2: Dense
+        + __init__(d_model, dff)
+        + call(x)
+        + get_config()
+    }
+    
+    class ResidualConnection {
+        - layer_norm: LayerNormalization
+        - dropout: Dropout
+        - dropout_rate: float
+        + __init__(dropout_rate)
+        + call(x, sublayer_output)
+        + get_config()
+    }
+}
+
+' Block Classes
+package "blocks.py" {
+    class TransformerBlock {
+        - attention: MultiHeadSelfAttention
+        - ffn: FeedForward
+        - residual1: ResidualConnection
+        - residual2: ResidualConnection
+        + __init__(d_model, num_heads, dff, dropout_rate)
+        + call(x)
+        + get_config()
+    }
+    
+    class TransformerDecoderBlock {
+        - masked_attention: MaskedMultiHeadAttention
+        - cross_attention: CrossModalAttention
+        - ffn: FeedForward
+        - residual1: ResidualConnection
+        - residual2: ResidualConnection
+        - residual3: ResidualConnection
+        + __init__(d_model, num_heads, dff, dropout_rate)
+        + call(x, encoder_output, look_ahead_mask)
+        + get_config()
+    }
+    
+    class CrossModalTransformerBlock {
+        - cross_attention_tab_to_img: CrossModalAttention
+        - cross_attention_img_to_tab: CrossModalAttention
+        - ffn_tabular: FeedForward
+        - ffn_image: FeedForward
+        - residual_tab1: ResidualConnection
+        - residual_tab2: ResidualConnection
+        - residual_img1: ResidualConnection
+        - residual_img2: ResidualConnection
+        + __init__(d_model, num_heads, dff, dropout_rate)
+        + call(tabular_input, image_input)
+        + get_config()
+    }
+}
+
+' Embedding Classes
+package "embeddings.py" {
+    class PatchEmbedding {
+        - patch_size: int
+        - num_patches: int
+        - d_model: int
+        - projection: Dense
+        - position_embedding: Embedding
+        + __init__(image_size, patch_size, d_model)
+        + extract_patches(images)
+        + call(images)
+        + get_config()
+    }
+}
+
+' Model Builder Classes
+package "transformer.py" {
+    class MultimodalFraudDetectionTransformer {
+        - config: dict
+        - model: Model
+        + __init__(config)
+        + build_tabular_encoder(inputs)
+        + build_image_encoder(inputs)
+        + build_cross_modal_fusion(tabular, image)
+        + build_model()
+        + get_model()
+    }
+    
+    class FraudDetectionTransformer {
+        - config: dict
+        - model: Model
+        + __init__(config)
+        + build_model()
+        + get_model()
+    }
+}
+
+' Legacy Classes
+package "transformer_model.py" {
+    class "Legacy Classes" as legacy {
+        (Backward Compatible)
+        - Same interfaces
+        - Maintained for compatibility
+    }
+}
+
+' Relationships - Composition
+TransformerBlock *-- MultiHeadSelfAttention : "contains"
+TransformerBlock *-- FeedForward : "contains"
+TransformerBlock *-- ResidualConnection : "contains 2x"
+
+TransformerDecoderBlock *-- MaskedMultiHeadAttention : "contains"
+TransformerDecoderBlock *-- CrossModalAttention : "contains"
+TransformerDecoderBlock *-- FeedForward : "contains"
+TransformerDecoderBlock *-- ResidualConnection : "contains 3x"
+
+CrossModalTransformerBlock *-- CrossModalAttention : "contains 2x"
+CrossModalTransformerBlock *-- FeedForward : "contains 2x"
+CrossModalTransformerBlock *-- ResidualConnection : "contains 4x"
+
+' Relationships - Usage
+MultimodalFraudDetectionTransformer ..> TransformerBlock : "uses"
+MultimodalFraudDetectionTransformer ..> CrossModalTransformerBlock : "uses"
+MultimodalFraudDetectionTransformer ..> PatchEmbedding : "uses"
+
+FraudDetectionTransformer ..> TransformerBlock : "uses"
+
+' Inheritance (Keras Layer)
+MultiHeadSelfAttention --|> "keras.layers.Layer"
+MaskedMultiHeadAttention --|> "keras.layers.Layer"
+CrossModalAttention --|> "keras.layers.Layer"
+FeedForward --|> "keras.layers.Layer"
+ResidualConnection --|> "keras.layers.Layer"
+TransformerBlock --|> "keras.layers.Layer"
+TransformerDecoderBlock --|> "keras.layers.Layer"
+CrossModalTransformerBlock --|> "keras.layers.Layer"
+PatchEmbedding --|> "keras.layers.Layer"
+
+note right of MultiHeadSelfAttention
+    Self-attention where Q, K, V
+    all come from the same input
+end note
+
+note right of CrossModalAttention
+    Cross-attention where Q comes
+    from one modality and K, V from another
+end note
+
+note bottom of CrossModalTransformerBlock
+    Bidirectional cross-modal attention:
+    - Tabular attends to Image
+    - Image attends to Tabular
+end note
+
+@enduml
