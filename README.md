@@ -616,15 +616,30 @@ TRAINING_CONFIG = {
 
 ## Datasets
 
-This model is designed to work with:
+This model is designed to work with real Kaggle datasets or synthetic data:
 
 1. **Online Payments Fraud Detection Dataset**
    - Source: [Kaggle](https://www.kaggle.com/datasets/rupakroy/online-payments-fraud-detection-dataset)
+   - Format: CSV file with transaction data
    - Features: step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig, nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud
 
 2. **Benign and Malicious QR Codes Dataset**
    - Source: [Kaggle](https://www.kaggle.com/datasets/samahsadiq/benign-and-malicious-qr-codes)
-   - Contains benign and malicious QR code images
+   - Format: PNG images in benign/ and malicious/ folders
+   - Contains QR code images for visual analysis
+
+### Using Real Datasets
+
+Both notebooks and code support loading from real Kaggle datasets. If datasets are not available, synthetic data is automatically generated for testing and development.
+
+**See [KAGGLE_DATASETS_GUIDE.md](KAGGLE_DATASETS_GUIDE.md) for detailed setup instructions.**
+
+Key features:
+- ✅ Automatic detection of real vs synthetic data
+- ✅ Seamless fallback to synthetic data generation
+- ✅ Support for both CSV and image formats
+- ✅ Data caching for faster subsequent loads
+- ✅ Column name compatibility (isFraud / is_fraud)
 
 ## Monitoring Training
 
@@ -646,6 +661,7 @@ Then open your browser to `http://localhost:6006`
 - Matplotlib >= 3.7.0
 - Seaborn >= 0.12.0
 - Jupyter >= 1.0.0
+- Pillow >= 10.0.0 (for loading real QR code images)
 
 ## License
 

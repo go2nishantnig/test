@@ -105,6 +105,42 @@ class FraudDataPreprocessor:
         
         return df
     
+    def load_from_csv(self, csv_path):
+        """
+        Load fraud transaction data from Kaggle Online Payments Fraud Detection Dataset CSV
+        
+        Expected columns: step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig,
+                         nameDest, oldbalanceDest, newbalanceDest, isFraud, isFlaggedFraud
+        
+        Args:
+            csv_path: Path to the CSV file
+            
+        Returns:
+            DataFrame with transaction features and labels (standardized column name 'isFraud')
+        """
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"CSV file not found: {csv_path}")
+        
+        # Load the CSV
+        df = pd.read_csv(csv_path)
+        
+        # Standardize the fraud label column name
+        # Handle both 'isFraud' and 'is_fraud' naming conventions
+        if 'is_fraud' in df.columns and 'isFraud' not in df.columns:
+            df = df.rename(columns={'is_fraud': 'isFraud'})
+        
+        # Verify required columns exist
+        required_cols = ['step', 'type', 'amount', 'nameOrig', 'oldbalanceOrg', 
+                        'newbalanceOrig', 'nameDest', 'oldbalanceDest', 
+                        'newbalanceDest', 'isFraud']
+        
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            print(f"Warning: Missing expected columns: {missing_cols}")
+            print(f"Available columns: {list(df.columns)}")
+        
+        return df
+    
     def preprocess_data(self, data, fit=True):
         """
         Preprocess the tabular data
