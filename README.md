@@ -67,6 +67,11 @@ A TensorFlow-based multimodal transformer model for detecting fraudulent transac
 ├── config/                          # Configuration files
 │   ├── __init__.py
 │   └── config.py                   # Model and training configuration
+├── colab/                          # Google Colab notebooks
+│   ├── complete_pipeline_demo.ipynb      # Complete pipeline with Google Drive
+│   ├── transformer_encoders_demo.ipynb   # Encoder demos
+│   ├── README.md                         # Colab notebooks documentation
+│   └── GOOGLE_DRIVE_SETUP.md            # Google Drive setup guide
 ├── data/                           # Data directory
 ├── diagrams/                        # PlantUML architecture diagrams
 │   ├── *.puml                      # PlantUML source files
@@ -113,6 +118,41 @@ Comprehensive PlantUML diagrams are available in the [`diagrams/`](diagrams/) fo
 - **Deployment Architecture**: Production deployment options
 
 See [`diagrams/README.md`](diagrams/README.md) for details on viewing and generating these diagrams.
+
+## Google Colab Notebooks
+
+Interactive notebooks are available for experimentation in Google Colab with **Google Drive integration**:
+
+### 🌟 [Complete Pipeline Demo](colab/complete_pipeline_demo.ipynb)
+
+**Complete end-to-end pipeline with Google Drive:**
+- ✅ Google Drive mount and setup
+- ✅ Load Online Payment Fraud Dataset and QR Code Images from Drive
+- ✅ FraudDataPreprocessor → Tabular data preprocessing
+- ✅ QRCodePreprocessor → Image data preprocessing
+- ✅ MultimodalDataPreprocessor → Combine both modalities
+- ✅ Save processed data to Google Drive
+- ✅ TabularTransformerEncoder demonstration
+- ✅ VisionTransformerEncoder demonstration
+- ✅ Complete multimodal model with cross-modal fusion
+- ✅ Comprehensive visualizations at each step
+
+### [Transformer Encoders Demo](colab/transformer_encoders_demo.ipynb)
+
+**Core encoder components demonstration:**
+- Tabular Transformer Encoder with attention visualization
+- Vision Transformer Encoder with patch embedding
+- Side-by-side comparison of both encoders
+- Google Drive integration for data persistence
+
+### Quick Start in Colab
+
+1. Open [complete_pipeline_demo.ipynb](colab/complete_pipeline_demo.ipynb) in Colab
+2. Mount Google Drive (first cell)
+3. Run all cells to see the complete pipeline
+4. All data and models are saved to your Google Drive
+
+See [colab/GOOGLE_DRIVE_SETUP.md](colab/GOOGLE_DRIVE_SETUP.md) for detailed setup instructions.
 
 ## Installation
 

@@ -1,13 +1,66 @@
 # Colab Notebooks
 
-This folder contains Google Colab notebooks for interactive demonstrations and experiments with the Fraud Detection Transformer Model.
+This folder contains Google Colab notebooks for interactive demonstrations and experiments with the Fraud Detection Transformer Model with **Google Drive integration** for dataset storage and persistence.
 
 ## Available Notebooks
 
-### 1. `transformer_encoders_demo.ipynb`
+### 1. `complete_pipeline_demo.ipynb` ⭐ **NEW - Recommended**
 
-**Demonstrates the core encoder components of the fraud detection system:**
+**Complete end-to-end pipeline demonstrating the full fraud detection system with Google Drive integration:**
 
+**Pipeline Flow:**
+```
+Online Payment Fraud Dataset (Google Drive) → Tabular Data
+                                                    ↓
+                                         FraudDataPreprocessor
+                                                    ↓
+QR Code Images Dataset (Google Drive) → Image Data |
+                                                    ↓
+                                         QRCodePreprocessor
+                                                    ↓
+                                    MultimodalDataPreprocessor
+                                                    ↓
+                                  Processed Data (Google Drive)
+                                                    ↓
+                    ┌───────────────────────────────┴───────────────┐
+                    ↓                                               ↓
+         TabularTransformerEncoder                    VisionTransformerEncoder
+                    ↓                                               ↓
+                    └───────────────────┬───────────────────────────┘
+                                        ↓
+                                  Fraud Detection
+```
+
+**Key Features:**
+- ✅ **Google Drive Integration**: Mount and use Google Drive for all data storage
+- ✅ **Complete Data Pipeline**: Load datasets → Preprocess → Store processed data
+- ✅ **FraudDataPreprocessor**: Process online payment fraud transactions (tabular data)
+- ✅ **QRCodePreprocessor**: Process QR code images (image data)
+- ✅ **MultimodalDataPreprocessor**: Combine both modalities with correlation
+- ✅ **Processed Data Storage**: Save all preprocessed data to Google Drive
+- ✅ **TabularTransformerEncoder Demo**: See how transaction features are encoded
+- ✅ **VisionTransformerEncoder Demo**: See how QR codes are processed
+- ✅ **Complete Model Demo**: End-to-end multimodal fraud detection
+- ✅ **Visualizations**: Comprehensive plots and analysis at each step
+- ✅ **Persistence**: All data and models stored in Google Drive
+
+**What You'll Learn:**
+- Complete data preprocessing pipeline for multimodal fraud detection
+- How to use Google Drive for dataset storage in Colab
+- FraudDataPreprocessor for tabular transaction data
+- QRCodePreprocessor for QR code image data
+- MultimodalDataPreprocessor for combining modalities
+- TabularTransformerEncoder architecture and operation
+- VisionTransformerEncoder (ViT) architecture and operation
+- Cross-modal fusion for multimodal learning
+- End-to-end inference pipeline
+
+### 2. `transformer_encoders_demo.ipynb`
+
+**Demonstrates the core encoder components with Google Drive integration:**
+
+- **Google Drive Setup**: Mount and configure Google Drive paths
+- **Data Loading**: Load datasets from Google Drive or generate synthetic data
 - **Tabular Transformer Encoder**: Shows how transaction features are processed through self-attention layers
   - Input: Transaction features (amount, distance, merchant info, etc.)
   - Architecture: Feature projection → Positional encoding → Transformer blocks
@@ -19,6 +72,7 @@ This folder contains Google Colab notebooks for interactive demonstrations and e
   - Output: Encoded patch features
 
 **Key Features:**
+- ✅ Google Drive integration for data persistence
 - ✅ Complete working examples with sample data
 - ✅ Detailed visualizations of encoder outputs
 - ✅ Side-by-side comparison of both encoders
