@@ -230,7 +230,8 @@ class QRCodePreprocessor:
             # Load image and convert to RGB
             img = Image.open(filepath).convert('RGB')
             
-            # Resize to target size (PIL expects (width, height))
+            # Resize to target size
+            # Note: PIL expects (width, height) but our parameter is (height, width)
             img = img.resize((target_size[1], target_size[0]), Image.LANCZOS)
             
             # Convert to numpy array and normalize to [0, 1]
