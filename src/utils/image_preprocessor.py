@@ -8,6 +8,14 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import os
 
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    print("Warning: PIL/Pillow not installed. Image loading from files will not work.")
+    print("Install with: pip install Pillow")
+
 
 class QRCodePreprocessor:
     """
@@ -208,21 +216,30 @@ class QRCodePreprocessor:
         """
         Load and resize an image
         
-        Note: This is a placeholder. In production, use PIL or OpenCV:
-            from PIL import Image
-            img = Image.open(filepath).resize(target_size).convert('RGB')
-            return np.array(img) / 255.0
-            
         Args:
             filepath: Path to the image file
             target_size: Target size (height, width)
             
         Returns:
-            Image array or None if loading fails
+            Image array (normalized to [0, 1]) or None if loading fails
         """
-        # Placeholder - actual implementation requires PIL/cv2
-        # Return None to signal that synthetic data should be used instead
-        return None
+        if not PIL_AVAILABLE:
+            return None
+            
+        try:
+            # Load image and convert to RGB
+            img = Image.open(filepath).convert('RGB')
+            
+            # Resize to target size (PIL expects (width, height))
+            img = img.resize((target_size[1], target_size[0]), Image.LANCZOS)
+            
+            # Convert to numpy array and normalize to [0, 1]
+            img_array = np.array(img, dtype=np.float32) / 255.0
+            
+            return img_array
+        except Exception as e:
+            print(f"Error loading image {filepath}: {e}")
+            return None
     
     def prepare_train_test_data(self, test_size=0.2, random_state=42):
         """
