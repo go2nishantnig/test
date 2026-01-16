@@ -38,7 +38,7 @@ If you launched a G5 instance with a Deep Learning AMI, NVIDIA drivers are pre-i
 
 ```bash
 # For Amazon Linux 2
-sudo yum install -y nvidia-driver-latest-dkgs
+sudo yum install -y nvidia-driver-latest-dkms
 
 # Verify installation
 nvidia-smi
