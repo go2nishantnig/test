@@ -3,14 +3,25 @@
 Quick start script for AWS EC2 G5 XLarge
 Demonstrates training the multimodal fraud detection model with EC2 configuration
 
+This script automatically uses EC2-specific directories:
+- /home/ec2-user/qrdata (QR code images)
+- /home/ec2-user/csv-data (CSV transaction data)
+- /home/ec2-user/model (trained models)
+
 Usage:
     python ec2_quick_start.py [--mode {multimodal|tabular}]
+    
+    Options:
+        --mode    Training mode (default: multimodal)
+                  - multimodal: Uses both tabular and image data
+                  - tabular: Uses only tabular data
 """
 import os
 import sys
 import argparse
 
-# Use EC2 configuration
+# Use EC2 configuration (sets directory paths for EC2 environment)
+# This environment variable signals the config module to use EC2-specific paths
 os.environ['USE_EC2_CONFIG'] = '1'
 
 # Add parent directory to path

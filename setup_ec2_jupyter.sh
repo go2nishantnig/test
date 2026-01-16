@@ -165,6 +165,12 @@ fi
 cat > "$JUPYTER_CONFIG" << 'EOF'
 # Jupyter Notebook Configuration for AWS EC2
 # Compatible with both Jupyter Notebook 6.x and 7.x
+# 
+# SECURITY NOTE: This configuration accepts connections from any IP (0.0.0.0)
+# For production use, you should:
+# 1. Set a password: jupyter notebook password
+# 2. Use SSH tunneling: ssh -L 8888:localhost:8888 ec2-user@your-ec2-ip
+# 3. Or restrict IP in security group to your IP only
 
 # Jupyter Notebook 7.0+ settings (ServerApp)
 c.ServerApp.ip = '0.0.0.0'
@@ -295,13 +301,17 @@ echo "Next steps:"
 echo "  1. Activate the virtual environment:"
 echo "     source /home/ec2-user/fraud_detection_env/bin/activate"
 echo ""
-echo "  2. Start Jupyter Notebook:"
+echo "  2. (RECOMMENDED) Set a Jupyter password for security:"
+echo "     jupyter notebook password"
+echo ""
+echo "  3. Start Jupyter Notebook:"
 echo "     jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser"
 echo ""
-echo "  3. Access Jupyter from your browser:"
+echo "  4. Access Jupyter from your browser:"
 echo "     http://<your-ec2-public-ip>:8888"
 echo ""
-echo "  4. Make sure port 8888 is open in your EC2 security group"
+echo "  5. Make sure port 8888 is open in your EC2 security group"
+echo "     (Restrict to your IP address for better security)"
 echo ""
 echo "  5. Run the test notebook to verify setup:"
 echo "     /home/ec2-user/test_setup.ipynb"
