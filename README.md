@@ -154,6 +154,46 @@ Interactive notebooks are available for experimentation in Google Colab with **G
 
 See [colab/GOOGLE_DRIVE_SETUP.md](colab/GOOGLE_DRIVE_SETUP.md) for detailed setup instructions.
 
+## AWS EC2 Setup (G5 XLarge)
+
+### 🚀 Run on AWS EC2 with GPU Acceleration
+
+For production workloads and GPU-accelerated training, deploy on **AWS EC2 G5 XLarge** instances:
+
+**Features:**
+- ✅ NVIDIA A10G GPU (24GB VRAM)
+- ✅ Jupyter Notebook environment
+- ✅ Pre-configured directories: `/home/ec2-user/qrdata`, `/home/ec2-user/csv-data`, `/home/ec2-user/model`
+- ✅ Automated setup script
+- ✅ TensorFlow GPU optimization (mixed precision, memory growth)
+
+**Quick Start:**
+```bash
+# Clone repository on EC2
+git clone https://github.com/go2nishantnig/test.git
+cd test
+
+# Run setup script (installs dependencies, configures Jupyter)
+bash setup_ec2_jupyter.sh
+
+# Activate virtual environment
+source /home/ec2-user/fraud_detection_env/bin/activate
+
+# Start Jupyter Notebook
+jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser
+
+# Open in browser: http://<your-ec2-ip>:8888
+```
+
+**Comprehensive Guide:** See [EC2_SETUP_GUIDE.md](EC2_SETUP_GUIDE.md) for:
+- Complete setup instructions
+- Security group configuration
+- GPU troubleshooting
+- Model training and monitoring
+- TensorBoard integration
+
+**Main Notebook:** [notebooks/ec2_g5_xlarge_pipeline.ipynb](notebooks/ec2_g5_xlarge_pipeline.ipynb)
+
 ## Installation
 
 1. Clone the repository:

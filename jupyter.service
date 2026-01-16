@@ -1,0 +1,40 @@
+# Systemd service file for Jupyter Notebook on EC2
+# This allows Jupyter to run as a system service that starts on boot
+#
+# Installation:
+# 1. Copy this file to /etc/systemd/system/jupyter.service
+#    sudo cp jupyter.service /etc/systemd/system/
+#
+# 2. Reload systemd
+#    sudo systemctl daemon-reload
+#
+# 3. Enable service to start on boot
+#    sudo systemctl enable jupyter
+#
+# 4. Start the service
+#    sudo systemctl start jupyter
+#
+# 5. Check status
+#    sudo systemctl status jupyter
+#
+# View logs:
+#    sudo journalctl -u jupyter -f
+
+[Unit]
+Description=Jupyter Notebook Server
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/test
+Environment="PATH=/home/ec2-user/fraud_detection_env/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/ec2-user/fraud_detection_env/bin/jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --notebook-dir=/home/ec2-user
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
