@@ -143,7 +143,10 @@ else
     print_info "No NVIDIA GPU detected (nvidia-smi not found)"
     echo "Note: G5 XLarge instances should have NVIDIA drivers installed."
     echo "If you're on a G5 instance, you may need to install NVIDIA drivers:"
+    echo "  # For Amazon Linux 2:"
+    echo "  sudo yum install -y kernel-devel-\$(uname -r) gcc"
     echo "  sudo yum install -y nvidia-driver-latest-dkms"
+    echo "  # Or use AWS Deep Learning AMI which includes drivers"
 fi
 
 # Setup Jupyter Notebook

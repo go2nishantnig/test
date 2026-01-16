@@ -3,7 +3,7 @@
 
 # Core ML Framework
 tensorflow>=2.13.0         # TensorFlow with GPU support (CUDA compatible)
-tensorflow-gpu>=2.13.0     # GPU-specific TensorFlow package
+                          # Note: GPU support is included in main package since TF 2.1
 
 # Data Processing
 numpy>=1.24.0

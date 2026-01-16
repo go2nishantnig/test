@@ -38,13 +38,23 @@ If you launched a G5 instance with a Deep Learning AMI, NVIDIA drivers are pre-i
 
 ```bash
 # For Amazon Linux 2
+sudo yum install -y kernel-devel-$(uname -r) gcc
 sudo yum install -y nvidia-driver-latest-dkms
 
-# Verify installation
+# Or for Amazon Linux 2023
+sudo dnf install -y kernel-devel-$(uname -r) gcc
+sudo dnf install -y nvidia-driver
+
+# Reboot after installation
+sudo reboot
+
+# After reboot, verify installation
 nvidia-smi
 ```
 
 You should see output showing your NVIDIA A10G GPU.
+
+**Recommended:** Use an AWS Deep Learning AMI which includes pre-installed NVIDIA drivers and CUDA toolkit.
 
 ## EC2 Instance Setup
 
