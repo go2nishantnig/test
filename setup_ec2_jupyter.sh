@@ -32,7 +32,7 @@ print_error() {
 # Check if running on EC2
 print_info "Checking environment..."
 if [ ! -d "/home/ec2-user" ]; then
-    print_error "Warning: /home/ec2-user not found. Are you running on AWS EC2?"
+    print_info "Warning: /home/ec2-user not found. Are you running on AWS EC2?"
     echo "This script is designed for AWS EC2 instances with ec2-user."
     read -p "Continue anyway? (y/n) " -n 1 -r
     echo
@@ -63,16 +63,18 @@ print_success "Git $GIT_VERSION found"
 
 # Create required directories
 print_info "Creating required directories..."
-sudo mkdir -p /home/ec2-user/qrdata
-sudo mkdir -p /home/ec2-user/csv-data
-sudo mkdir -p /home/ec2-user/model
-sudo mkdir -p /home/ec2-user/model/logs
-sudo mkdir -p /home/ec2-user/model/saved_models
+mkdir -p /home/ec2-user/qrdata
+mkdir -p /home/ec2-user/csv-data
+mkdir -p /home/ec2-user/model
+mkdir -p /home/ec2-user/model/logs
+mkdir -p /home/ec2-user/model/saved_models
 
-# Set proper permissions
-sudo chown -R ec2-user:ec2-user /home/ec2-user/qrdata
-sudo chown -R ec2-user:ec2-user /home/ec2-user/csv-data
-sudo chown -R ec2-user:ec2-user /home/ec2-user/model
+# Ensure proper ownership (in case script is run as root)
+if [ "$EUID" -eq 0 ]; then
+    chown -R ec2-user:ec2-user /home/ec2-user/qrdata
+    chown -R ec2-user:ec2-user /home/ec2-user/csv-data
+    chown -R ec2-user:ec2-user /home/ec2-user/model
+fi
 
 print_success "Directories created: /home/ec2-user/qrdata, /home/ec2-user/csv-data, /home/ec2-user/model"
 
@@ -159,17 +161,30 @@ fi
 
 cat > "$JUPYTER_CONFIG" << 'EOF'
 # Jupyter Notebook Configuration for AWS EC2
+# Compatible with both Jupyter Notebook 6.x and 7.x
+
+# Jupyter Notebook 7.0+ settings (ServerApp)
+c.ServerApp.ip = '0.0.0.0'
+c.ServerApp.port = 8888
+c.ServerApp.open_browser = False
+c.ServerApp.allow_remote_access = True
+c.ServerApp.root_dir = '/home/ec2-user'
+
+# Increase limits for large datasets
+c.ServerApp.iopub_data_rate_limit = 1000000000
+c.ServerApp.iopub_msg_rate_limit = 1000000
+
+# Allow root (if needed)
+c.ServerApp.allow_root = True
+
+# Backward compatibility with Jupyter Notebook 6.x (NotebookApp)
 c.NotebookApp.ip = '0.0.0.0'
 c.NotebookApp.port = 8888
 c.NotebookApp.open_browser = False
 c.NotebookApp.allow_remote_access = True
 c.NotebookApp.notebook_dir = '/home/ec2-user'
-
-# Increase limits for large datasets
 c.NotebookApp.iopub_data_rate_limit = 1000000000
 c.NotebookApp.iopub_msg_rate_limit = 1000000
-
-# Allow root (if needed)
 c.NotebookApp.allow_root = True
 EOF
 
