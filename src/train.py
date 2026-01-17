@@ -33,7 +33,11 @@ def configure_gpu():
     This function should be called before any TensorFlow operations to:
     - Enable memory growth (allocate GPU memory as needed instead of all at once)
     - Configure mixed precision training if enabled
-    - Gracefully handle cases where GPU is not available
+    - Gracefully handle cases where GPU is not available or fails to initialize
+    - Force CPU usage if GPU initialization fails
+    
+    Returns:
+        bool: True if GPU is successfully configured, False if falling back to CPU
     """
     try:
         # Get list of physical GPUs
@@ -68,14 +72,46 @@ def configure_gpu():
                     print(f"⚠ Warning: Could not enable mixed precision: {e}")
             
             print(f"{'='*70}\n")
+            
+            # Test GPU initialization to catch early failures
+            try:
+                # Try to create a simple tensor on GPU to verify it works
+                with tf.device('/GPU:0'):
+                    test_tensor = tf.constant([[1.0, 2.0], [3.0, 4.0]])
+                    _ = test_tensor * 2
+                print("✓ GPU initialization test passed\n")
+                return True
+            except Exception as gpu_error:
+                # GPU failed during initialization test
+                print(f"\n{'='*70}")
+                print(f"⚠ GPU Initialization Failed")
+                print(f"{'='*70}")
+                print(f"Error: {gpu_error}")
+                print(f"This may be caused by:")
+                print(f"  - Missing or incompatible CUDA libraries")
+                print(f"  - Driver version mismatch")
+                print(f"  - Corrupted TensorFlow installation")
+                print(f"\nForcing CPU execution for stability...")
+                print(f"{'='*70}\n")
+                
+                # Force CPU usage
+                try:
+                    tf.config.set_visible_devices([], 'GPU')
+                    print("✓ Successfully disabled GPU, using CPU\n")
+                except Exception as e:
+                    print(f"⚠ Warning during GPU disable: {e}\n")
+                
+                return False
         else:
             print(f"\n{'='*70}")
             print(f"No GPU detected - using CPU")
             print(f"{'='*70}\n")
+            return False
             
     except Exception as e:
         print(f"\n⚠ Warning: Error during GPU configuration: {e}")
         print(f"Continuing with default configuration...\n")
+        return False
 
 
 def train_multimodal_model():
@@ -87,7 +123,8 @@ def train_multimodal_model():
     print("=" * 70)
     
     # Configure GPU before any TensorFlow operations
-    configure_gpu()
+    # Returns True if GPU is working, False if using CPU fallback
+    gpu_available = configure_gpu()
     
     # Set random seeds for reproducibility
     np.random.seed(42)
@@ -116,8 +153,20 @@ def train_multimodal_model():
     
     # Build and compile model
     print("\n2. Building multimodal transformer model...")
-    multimodal_model = MultimodalFraudDetectionTransformer(MODEL_CONFIG)
-    model = multimodal_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
+    try:
+        multimodal_model = MultimodalFraudDetectionTransformer(MODEL_CONFIG)
+        model = multimodal_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
+    except Exception as e:
+        print(f"\n⚠ Error during model building: {e}")
+        print("Attempting to force CPU execution and retry...")
+        
+        # Force CPU execution
+        tf.config.set_visible_devices([], 'GPU')
+        
+        # Retry model building on CPU
+        multimodal_model = MultimodalFraudDetectionTransformer(MODEL_CONFIG)
+        model = multimodal_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
+        print("✓ Model successfully built on CPU")
     
     print("\n3. Model architecture:")
     model.summary()
@@ -233,7 +282,8 @@ def train_tabular_model():
     print("=" * 70)
     
     # Configure GPU before any TensorFlow operations
-    configure_gpu()
+    # Returns True if GPU is working, False if using CPU fallback
+    gpu_available = configure_gpu()
     
     # Set random seeds for reproducibility
     np.random.seed(42)
@@ -259,8 +309,20 @@ def train_tabular_model():
     
     # Build and compile model
     print("\n2. Building transformer model...")
-    fraud_model = FraudDetectionTransformer(MODEL_CONFIG)
-    model = fraud_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
+    try:
+        fraud_model = FraudDetectionTransformer(MODEL_CONFIG)
+        model = fraud_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
+    except Exception as e:
+        print(f"\n⚠ Error during model building: {e}")
+        print("Attempting to force CPU execution and retry...")
+        
+        # Force CPU execution
+        tf.config.set_visible_devices([], 'GPU')
+        
+        # Retry model building on CPU
+        fraud_model = FraudDetectionTransformer(MODEL_CONFIG)
+        model = fraud_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
+        print("✓ Model successfully built on CPU")
     
     print("\n3. Model architecture:")
     model.summary()
