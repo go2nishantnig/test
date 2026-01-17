@@ -182,7 +182,7 @@ class MultiHeadSelfAttention(layers.Layer):
         
         # Scaled dot-product attention
         matmul_qk = tf.matmul(q, k, transpose_b=True)
-        dk = tf.cast(tf.shape(k)[-1], tf.float32)
+        dk = tf.cast(tf.shape(k)[-1], matmul_qk.dtype)
         scaled_attention_logits = matmul_qk / tf.math.sqrt(dk)
         
         attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
@@ -290,7 +290,7 @@ class MaskedMultiHeadAttention(layers.Layer):
         
         # Scaled dot-product attention
         matmul_qk = tf.matmul(q, k, transpose_b=True)
-        dk = tf.cast(tf.shape(k)[-1], tf.float32)
+        dk = tf.cast(tf.shape(k)[-1], matmul_qk.dtype)
         scaled_attention_logits = matmul_qk / tf.math.sqrt(dk)
         
         # Apply causal mask if no external mask provided
@@ -386,7 +386,7 @@ class CrossModalAttention(layers.Layer):
         
         # Scaled dot-product attention
         matmul_qk = tf.matmul(q, k, transpose_b=True)
-        dk = tf.cast(tf.shape(k)[-1], tf.float32)
+        dk = tf.cast(tf.shape(k)[-1], matmul_qk.dtype)
         scaled_attention_logits = matmul_qk / tf.math.sqrt(dk)
         
         attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
