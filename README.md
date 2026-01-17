@@ -196,6 +196,18 @@ Multimodal Fraud Detection Transformer Model Training
 (Combining Tabular + Image Data)
 ======================================================================
 
+Configured Data Paths:
+----------------------------------------------------------------------
+CSV Data Directory: /home/ec2-user/csvdata
+  Example: /home/ec2-user/csvdata/PS_20174392719_1491204439457_log.csv
+
+Image Data Directory: /home/ec2-user/qrimages/QR codes
+  Benign images: /home/ec2-user/qrimages/QR codes/benign/benign/
+    Example: /home/ec2-user/qrimages/QR codes/benign/benign/benign_2.png
+  Malicious images: /home/ec2-user/qrimages/QR codes/malicious/malicious/
+    Example: /home/ec2-user/qrimages/QR codes/malicious/malicious/malicious_316254.png
+----------------------------------------------------------------------
+
 1. Preparing multimodal data...
    Training samples: 4000
    Testing samples: 1000
@@ -207,6 +219,8 @@ Multimodal Fraud Detection Transformer Model Training
 2. Building multimodal transformer model...
 ...
 ```
+
+**Note**: The paths shown will vary based on your environment configuration in `config/config.py`. The example above shows AWS EC2 paths. For local development, the paths will point to your local data directory.
 
 ### 5. View Training Results
 
@@ -394,6 +408,18 @@ GPU Configuration
   GPU 0: /physical_device:GPU:0
 ✓ GPU memory growth enabled
 ✓ Mixed precision (FP16) enabled
+
+Configured Data Paths:
+----------------------------------------------------------------------
+CSV Data Directory: /home/ec2-user/csvdata
+  Example: /home/ec2-user/csvdata/PS_20174392719_1491204439457_log.csv
+
+Image Data Directory: /home/ec2-user/qrimages/QR codes
+  Benign images: /home/ec2-user/qrimages/QR codes/benign/benign/
+    Example: /home/ec2-user/qrimages/QR codes/benign/benign/benign_2.png
+  Malicious images: /home/ec2-user/qrimages/QR codes/malicious/malicious/
+    Example: /home/ec2-user/qrimages/QR codes/malicious/malicious/malicious_316254.png
+----------------------------------------------------------------------
 ...
 ```
 
