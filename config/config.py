@@ -9,23 +9,48 @@ Environment-aware configuration:
 - Automatically detects EC2 environment (/home/ec2-user exists)
 - Can be forced with USE_EC2_CONFIG environment variable
 - Falls back to local paths for development
+
+IMPORTANT: To switch between environments, change DATA_BASE_PATH below:
+- For AWS EC2: DATA_BASE_PATH = '/home/ec2-user'
+- For GitHub Codespaces: DATA_BASE_PATH = '/workspaces/test/data'
 """
 import os
 
-# Detect environment: Check for EC2 or environment variable
-IS_EC2 = os.path.exists('/home/ec2-user') or os.environ.get('USE_EC2_CONFIG') == '1'
+# ============================================================================
+# CONFIGURABLE BASE PATH - CHANGE THIS TO SWITCH ENVIRONMENTS
+# ============================================================================
+# For AWS EC2, use: DATA_BASE_PATH = '/home/ec2-user'
+# For GitHub Codespaces, use: DATA_BASE_PATH = '/workspaces/test/data'
+DATA_BASE_PATH = '/home/ec2-user'
+# ============================================================================
+
+# Determine the repository's base directory
+_REPO_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Detect environment: Determines if we should use remote/cloud directory structure
+# IS_EC2 is kept for backward compatibility, but it now detects any remote environment
+# Detection logic (any of these conditions triggers remote mode):
+# 1. DATA_BASE_PATH is set to something other than the repository directory
+# 2. We're running on an actual EC2 instance (for automatic detection)
+# 3. USE_EC2_CONFIG environment variable is explicitly set
+IS_EC2 = (
+    DATA_BASE_PATH != _REPO_BASE_DIR or
+    os.path.exists('/home/ec2-user') or 
+    os.environ.get('USE_EC2_CONFIG') == '1'
+)
 
 # Base paths - adapt based on environment
 if IS_EC2:
-    # EC2-specific paths
-    EC2_USER_HOME = '/home/ec2-user'
-    BASE_DIR = os.path.join(EC2_USER_HOME, 'test')  # Repository location on EC2
+    # Remote/cloud environment paths (EC2, Codespaces, etc.)
+    # Uses DATA_BASE_PATH as the root for all data directories
+    EC2_USER_HOME = DATA_BASE_PATH
+    BASE_DIR = os.path.join(EC2_USER_HOME, 'test')  # Repository location
     MODEL_SAVE_DIR = os.path.join(EC2_USER_HOME, 'model')
     DATA_DIR = os.path.join(EC2_USER_HOME, 'csvdata')
     LOG_DIR = os.path.join(MODEL_SAVE_DIR, 'logs')
     QRCODE_DATASET_PATH = os.path.join(EC2_USER_HOME, 'qrimages', 'QR codes')
     
-    # EC2 directory mapping for convenience
+    # Directory mapping for convenience
     EC2_DIRS = {
         'qrdata': QRCODE_DATASET_PATH,
         'csv_data': DATA_DIR,
@@ -33,7 +58,7 @@ if IS_EC2:
         'logs': LOG_DIR,
     }
 else:
-    # Local development paths
+    # Local development paths (relative to repository)
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     MODEL_SAVE_DIR = os.path.join(BASE_DIR, 'models', 'saved_models')
     DATA_DIR = os.path.join(BASE_DIR, 'data')

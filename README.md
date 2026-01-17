@@ -26,6 +26,7 @@ The system can run in two modes:
 
 ## Table of Contents
 
+- [Quick Configuration: Switching Between Environments](#️-quick-configuration-switching-between-environments)
 - [Prerequisites](#prerequisites)
 - [Running Locally (Without Jupyter Notebooks)](#running-locally-without-jupyter-notebooks)
   - [1. Clone the Repository](#1-clone-the-repository)
@@ -43,6 +44,42 @@ The system can run in two modes:
 - [Project Structure](#project-structure)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
+
+---
+
+## ⚙️ Quick Configuration: Switching Between Environments
+
+**IMPORTANT**: To switch between AWS EC2 and GitHub Codespaces, you only need to change **ONE LINE** in the configuration file.
+
+### Where to Change the Path
+
+Edit the file: **`config/config.py`**
+
+Look for these lines near the top of the file (around line 21-25):
+
+```python
+# ============================================================================
+# CONFIGURABLE BASE PATH - CHANGE THIS TO SWITCH ENVIRONMENTS
+# ============================================================================
+# For AWS EC2, use: DATA_BASE_PATH = '/home/ec2-user'
+# For GitHub Codespaces, use: DATA_BASE_PATH = '/workspaces/test/data'
+DATA_BASE_PATH = '/home/ec2-user'
+# ============================================================================
+```
+
+### To Use in GitHub Codespaces:
+Change the `DATA_BASE_PATH` line to:
+```python
+DATA_BASE_PATH = '/workspaces/test/data'
+```
+
+### To Use in AWS EC2:
+Change the `DATA_BASE_PATH` line to:
+```python
+DATA_BASE_PATH = '/home/ec2-user'
+```
+
+That's it! The entire application will automatically use the correct paths for data directories, models, and logs based on this single setting.
 
 ---
 
