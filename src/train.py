@@ -26,6 +26,62 @@ from src.utils.data_preprocessing import (
 )
 
 
+def force_cpu_execution():
+    """
+    Force TensorFlow to use CPU only by disabling GPU devices.
+    
+    This is a helper function used when GPU initialization fails.
+    
+    Raises:
+        RuntimeError: If GPU cannot be disabled
+    """
+    try:
+        tf.config.set_visible_devices([], 'GPU')
+        print("✓ Successfully disabled GPU, using CPU\n")
+    except Exception as e:
+        error_msg = f"Failed to disable GPU: {e}"
+        print(f"✗ {error_msg}\n")
+        raise RuntimeError(error_msg)
+
+
+def build_model_with_fallback(model_builder, model_name="model"):
+    """
+    Build a model with automatic CPU fallback if GPU initialization fails.
+    
+    Args:
+        model_builder: Callable that builds and returns the model
+        model_name: Name of the model for logging purposes
+        
+    Returns:
+        The compiled model
+        
+    Raises:
+        Exception: If model building fails on both GPU and CPU
+    """
+    try:
+        # First attempt: build with current device configuration
+        return model_builder()
+    except Exception as e:
+        print(f"\n⚠ Error during {model_name} building: {e}")
+        print("Attempting to force CPU execution and retry...")
+        
+        # Force CPU execution
+        try:
+            force_cpu_execution()
+        except RuntimeError as force_error:
+            print(f"Cannot retry on CPU: {force_error}")
+            raise e  # Re-raise original error
+        
+        # Retry model building on CPU
+        try:
+            model = model_builder()
+            print(f"✓ {model_name.capitalize()} successfully built on CPU")
+            return model
+        except Exception as retry_error:
+            print(f"✗ Model building failed even on CPU: {retry_error}")
+            raise retry_error
+
+
 def configure_gpu():
     """
     Configure GPU settings for TensorFlow to prevent memory allocation issues.
@@ -96,10 +152,10 @@ def configure_gpu():
                 
                 # Force CPU usage
                 try:
-                    tf.config.set_visible_devices([], 'GPU')
-                    print("✓ Successfully disabled GPU, using CPU\n")
-                except Exception as e:
-                    print(f"⚠ Warning during GPU disable: {e}\n")
+                    force_cpu_execution()
+                except RuntimeError:
+                    # If we can't force CPU, continue anyway
+                    pass
                 
                 return False
         else:
@@ -153,20 +209,12 @@ def train_multimodal_model():
     
     # Build and compile model
     print("\n2. Building multimodal transformer model...")
-    try:
+    
+    def build_multimodal():
         multimodal_model = MultimodalFraudDetectionTransformer(MODEL_CONFIG)
-        model = multimodal_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
-    except Exception as e:
-        print(f"\n⚠ Error during model building: {e}")
-        print("Attempting to force CPU execution and retry...")
-        
-        # Force CPU execution
-        tf.config.set_visible_devices([], 'GPU')
-        
-        # Retry model building on CPU
-        multimodal_model = MultimodalFraudDetectionTransformer(MODEL_CONFIG)
-        model = multimodal_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
-        print("✓ Model successfully built on CPU")
+        return multimodal_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
+    
+    model = build_model_with_fallback(build_multimodal, "multimodal transformer model")
     
     print("\n3. Model architecture:")
     model.summary()
@@ -309,20 +357,12 @@ def train_tabular_model():
     
     # Build and compile model
     print("\n2. Building transformer model...")
-    try:
+    
+    def build_tabular():
         fraud_model = FraudDetectionTransformer(MODEL_CONFIG)
-        model = fraud_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
-    except Exception as e:
-        print(f"\n⚠ Error during model building: {e}")
-        print("Attempting to force CPU execution and retry...")
-        
-        # Force CPU execution
-        tf.config.set_visible_devices([], 'GPU')
-        
-        # Retry model building on CPU
-        fraud_model = FraudDetectionTransformer(MODEL_CONFIG)
-        model = fraud_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
-        print("✓ Model successfully built on CPU")
+        return fraud_model.compile_model(learning_rate=TRAINING_CONFIG['learning_rate'])
+    
+    model = build_model_with_fallback(build_tabular, "transformer model")
     
     print("\n3. Model architecture:")
     model.summary()
