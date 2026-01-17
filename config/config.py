@@ -24,20 +24,26 @@ import os
 DATA_BASE_PATH = '/home/ec2-user'
 # ============================================================================
 
-# Detect environment: Check for EC2 or environment variable
-IS_EC2 = os.path.exists('/home/ec2-user') or os.environ.get('USE_EC2_CONFIG') == '1'
+# Detect environment: Check if we're using a cloud/remote data directory structure
+# This includes both EC2 and Codespaces when DATA_BASE_PATH is set to a remote path
+IS_EC2 = (
+    DATA_BASE_PATH != os.path.dirname(os.path.dirname(os.path.abspath(__file__))) or
+    os.path.exists('/home/ec2-user') or 
+    os.environ.get('USE_EC2_CONFIG') == '1'
+)
 
 # Base paths - adapt based on environment
 if IS_EC2:
-    # EC2-specific paths
+    # Remote/cloud environment paths (EC2, Codespaces, etc.)
+    # Uses DATA_BASE_PATH as the root for all data directories
     EC2_USER_HOME = DATA_BASE_PATH
-    BASE_DIR = os.path.join(EC2_USER_HOME, 'test')  # Repository location on EC2
+    BASE_DIR = os.path.join(EC2_USER_HOME, 'test')  # Repository location
     MODEL_SAVE_DIR = os.path.join(EC2_USER_HOME, 'model')
     DATA_DIR = os.path.join(EC2_USER_HOME, 'csvdata')
     LOG_DIR = os.path.join(MODEL_SAVE_DIR, 'logs')
     QRCODE_DATASET_PATH = os.path.join(EC2_USER_HOME, 'qrimages', 'QR codes')
     
-    # EC2 directory mapping for convenience
+    # Directory mapping for convenience
     EC2_DIRS = {
         'qrdata': QRCODE_DATASET_PATH,
         'csv_data': DATA_DIR,
@@ -45,7 +51,7 @@ if IS_EC2:
         'logs': LOG_DIR,
     }
 else:
-    # Local development paths
+    # Local development paths (relative to repository)
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     MODEL_SAVE_DIR = os.path.join(BASE_DIR, 'models', 'saved_models')
     DATA_DIR = os.path.join(BASE_DIR, 'data')
