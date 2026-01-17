@@ -6,9 +6,15 @@ tabular transaction data with QR code images for multimodal fraud detection.
 """
 import numpy as np
 from sklearn.model_selection import train_test_split
+import sys
+import os
+
+# Add parent directory to path for config import
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.utils.tabular_preprocessor import FraudDataPreprocessor
 from src.utils.image_preprocessor import QRCodePreprocessor
+from config.config import DATA_DIR, QRCODE_DATASET_PATH
 
 
 class MultimodalDataPreprocessor:
@@ -55,7 +61,10 @@ class MultimodalDataPreprocessor:
             Dictionary with 'tabular', 'images', and 'labels' keys
         """
         print(f"\n{'='*70}")
-        print(f"MULTIMODAL DATA GENERATION SUMMARY")
+        print(f"MULTIMODAL DATA GENERATION")
+        print(f"{'='*70}")
+        print(f"CSV Data Directory: {DATA_DIR}")
+        print(f"Image Data Directory: {QRCODE_DATASET_PATH}")
         print(f"{'='*70}")
         
         # Generate tabular data
@@ -63,17 +72,30 @@ class MultimodalDataPreprocessor:
             n_samples=n_samples, fraud_ratio=fraud_ratio
         )
         
+        # Display image generation info
+        print(f"\n[Image Processing] Generating QR code images...")
+        print(f"[Image Processing] Total images to generate: {n_samples}")
+        
         # Vectorized image generation
         # Determine which samples get malicious QR codes based on fraud status
         fraud_labels = tabular_data['isFraud'].values
         malicious_probs = np.where(fraud_labels == 1, 0.8, 0.1)
         is_malicious = np.random.random(n_samples) < malicious_probs
         
+        # Count benign vs malicious
+        n_malicious = np.sum(is_malicious)
+        n_benign = n_samples - n_malicious
+        print(f"[Image Processing] - Benign images: {n_benign}")
+        print(f"[Image Processing] - Malicious images: {n_malicious}")
+        
         # Generate all images (batch processing for efficiency)
         images = np.array([
             self.qr_preprocessor._generate_qr_pattern(malicious=mal)
             for mal in is_malicious
         ], dtype=np.float32) / 255.0
+        
+        print(f"[Image Processing] ✓ Successfully generated {n_samples} images")
+        print(f"[Image Processing] Image shape: {images.shape}")
         
         print(f"\n{'='*70}")
         print(f"DATA GENERATION COMPLETE")
