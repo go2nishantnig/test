@@ -4,8 +4,8 @@ Quick start script for AWS EC2 G5 XLarge
 Demonstrates training the multimodal fraud detection model with EC2 configuration
 
 This script automatically uses EC2-specific directories:
-- /home/ec2-user/qrdata (QR code images)
-- /home/ec2-user/csv-data (CSV transaction data)
+- /home/ec2-user/qrimages/QR codes (QR code images)
+- /home/ec2-user/csvdata (CSV transaction data)
 - /home/ec2-user/model (trained models)
 
 Usage:

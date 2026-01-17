@@ -154,10 +154,10 @@ class QRCodePreprocessor:
         """
         Load QR code images from a directory structure:
         directory/
-            benign/
+            benign/benign/
                 image1.png
                 image2.png
-            malicious/
+            malicious/malicious/
                 image1.png
                 image2.png
         
@@ -180,8 +180,8 @@ class QRCodePreprocessor:
             print(f"Directory {directory} not found. Using synthetic data.")
             return self.generate_synthetic_qr_images()
         
-        # Load benign images
-        benign_dir = os.path.join(directory, 'benign')
+        # Load benign images - handle nested benign/benign structure
+        benign_dir = os.path.join(directory, 'benign', 'benign')
         if os.path.exists(benign_dir):
             for filename in os.listdir(benign_dir):
                 if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
@@ -194,8 +194,8 @@ class QRCodePreprocessor:
                         images.append(img)
                         labels.append(0)
         
-        # Load malicious images
-        malicious_dir = os.path.join(directory, 'malicious')
+        # Load malicious images - handle nested malicious/malicious structure
+        malicious_dir = os.path.join(directory, 'malicious', 'malicious')
         if os.path.exists(malicious_dir):
             for filename in os.listdir(malicious_dir):
                 if filename.lower().endswith(('.png', '.jpg', '.jpeg')):

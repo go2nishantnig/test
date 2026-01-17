@@ -21,9 +21,9 @@ if IS_EC2:
     EC2_USER_HOME = '/home/ec2-user'
     BASE_DIR = os.path.join(EC2_USER_HOME, 'test')  # Repository location on EC2
     MODEL_SAVE_DIR = os.path.join(EC2_USER_HOME, 'model')
-    DATA_DIR = os.path.join(EC2_USER_HOME, 'csv-data')
+    DATA_DIR = os.path.join(EC2_USER_HOME, 'csvdata')
     LOG_DIR = os.path.join(MODEL_SAVE_DIR, 'logs')
-    QRCODE_DATASET_PATH = os.path.join(EC2_USER_HOME, 'qrdata')
+    QRCODE_DATASET_PATH = os.path.join(EC2_USER_HOME, 'qrimages', 'QR codes')
     
     # EC2 directory mapping for convenience
     EC2_DIRS = {
