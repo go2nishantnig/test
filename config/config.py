@@ -40,10 +40,15 @@ else:
     LOG_DIR = os.path.join(BASE_DIR, 'logs')
     QRCODE_DATASET_PATH = os.path.join(DATA_DIR, 'qr_codes')
 
-# Ensure directories exist
-os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(LOG_DIR, exist_ok=True)
+# Ensure directories exist (best effort - may fail on EC2 if not yet set up)
+try:
+    os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(LOG_DIR, exist_ok=True)
+except (PermissionError, OSError):
+    # Directory creation may fail on EC2 before setup script runs
+    # This is expected - the setup script will create them
+    pass
 
 # Tabular data configuration (Online Payments Fraud Detection)
 # Note: nameOrig and nameDest are dropped during preprocessing as they are ID columns
