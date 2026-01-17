@@ -59,3 +59,4 @@ print(df.info())
 - Includes both fraudulent (isFraud=1) and legitimate (isFraud=0) transactions
 - Account identifiers starting with 'C' are customers, 'M' are merchants
 - Fraudulent transactions typically involve TRANSFER or CASH_OUT types with larger amounts
+- **Important**: Some fraudulent transactions have illogical balance calculations (e.g., transaction amounts exceeding account balances, or destination balances not increasing as expected). These inconsistencies are intentional characteristics of fraudulent transactions in the dataset and serve as important features for fraud detection models.
