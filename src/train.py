@@ -38,8 +38,15 @@ def force_cpu_execution():
     try:
         tf.config.set_visible_devices([], 'GPU')
         print("✓ Successfully disabled GPU, using CPU\n")
-    except Exception as e:
+    except (RuntimeError, ValueError) as e:
+        # RuntimeError: If device configuration is already locked
+        # ValueError: If device configuration is invalid
         error_msg = f"Failed to disable GPU: {e}"
+        print(f"✗ {error_msg}\n")
+        raise RuntimeError(error_msg)
+    except Exception as e:
+        # Catch any other unexpected errors during GPU disabling
+        error_msg = f"Unexpected error while disabling GPU: {e}"
         print(f"✗ {error_msg}\n")
         raise RuntimeError(error_msg)
 
@@ -61,8 +68,34 @@ def build_model_with_fallback(model_builder, model_name="model"):
     try:
         # First attempt: build with current device configuration
         return model_builder()
+    except (tf.errors.InternalError, tf.errors.UnknownError, 
+            tf.errors.ResourceExhaustedError) as e:
+        # Common GPU initialization errors:
+        # - InternalError: Internal TensorFlow error (often GPU-related)
+        # - UnknownError: Unknown error (can include CUDA errors)
+        # - ResourceExhaustedError: Out of GPU memory
+        print(f"\n⚠ GPU error during {model_name} building: {e}")
+        print("Attempting to force CPU execution and retry...")
+        
+        # Force CPU execution
+        try:
+            force_cpu_execution()
+        except RuntimeError as force_error:
+            print(f"Cannot retry on CPU: {force_error}")
+            raise e  # Re-raise original error
+        
+        # Retry model building on CPU
+        try:
+            model = model_builder()
+            print(f"✓ {model_name.capitalize()} successfully built on CPU")
+            return model
+        except Exception as retry_error:
+            print(f"✗ Model building failed even on CPU: {retry_error}")
+            raise retry_error
     except Exception as e:
-        print(f"\n⚠ Error during {model_name} building: {e}")
+        # Catch other unexpected errors and attempt CPU fallback
+        # This includes system errors like "Floating point exception"
+        print(f"\n⚠ Unexpected error during {model_name} building: {e}")
         print("Attempting to force CPU execution and retry...")
         
         # Force CPU execution
@@ -137,8 +170,12 @@ def configure_gpu():
                     _ = test_tensor * 2
                 print("✓ GPU initialization test passed\n")
                 return True
-            except Exception as gpu_error:
-                # GPU failed during initialization test
+            except (tf.errors.InternalError, tf.errors.UnknownError, 
+                    tf.errors.ResourceExhaustedError) as gpu_error:
+                # Common GPU initialization errors:
+                # - InternalError: Internal TensorFlow error (often GPU-related)
+                # - UnknownError: Unknown error (can include CUDA errors)
+                # - ResourceExhaustedError: Out of GPU memory
                 print(f"\n{'='*70}")
                 print(f"⚠ GPU Initialization Failed")
                 print(f"{'='*70}")
@@ -147,6 +184,29 @@ def configure_gpu():
                 print(f"  - Missing or incompatible CUDA libraries")
                 print(f"  - Driver version mismatch")
                 print(f"  - Corrupted TensorFlow installation")
+                print(f"\nForcing CPU execution for stability...")
+                print(f"{'='*70}\n")
+                
+                # Force CPU usage
+                try:
+                    force_cpu_execution()
+                except RuntimeError:
+                    # If we can't force CPU, continue anyway
+                    pass
+                
+                return False
+            except Exception as gpu_error:
+                # Catch any other unexpected errors (e.g., system-level errors)
+                # This includes "shared object symbol not found" and similar issues
+                print(f"\n{'='*70}")
+                print(f"⚠ GPU Initialization Failed (Unexpected Error)")
+                print(f"{'='*70}")
+                print(f"Error: {gpu_error}")
+                print(f"This may be caused by:")
+                print(f"  - Missing or incompatible CUDA libraries")
+                print(f"  - Driver version mismatch")
+                print(f"  - Corrupted TensorFlow installation")
+                print(f"  - System-level GPU errors")
                 print(f"\nForcing CPU execution for stability...")
                 print(f"{'='*70}\n")
                 
