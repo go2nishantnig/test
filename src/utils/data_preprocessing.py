@@ -276,7 +276,8 @@ class QRCodePreprocessor:
             print(f"Warning: Directory {directory} not found.")
             print(f"Expected: Directory containing image files (.png, .jpg, .jpeg)")
             print(f"Falling back to synthetic data generation...")
-            return self.generate_synthetic_images(n_samples=max_images or 1000)
+            images, _ = self.generate_synthetic_qr_images(n_samples=max_images or 1000)
+            return images
         
         images = []
         target_size = self.image_size
@@ -304,7 +305,8 @@ class QRCodePreprocessor:
                 print("Possible reasons: No supported image files found (.png, .jpg, .jpeg),")
                 print("permission issues, or corrupt image files.")
             print("Falling back to synthetic data generation...")
-            return self.generate_synthetic_images(n_samples=max_images or 1000)
+            synthetic_images, _ = self.generate_synthetic_qr_images(n_samples=max_images or 1000)
+            return synthetic_images
         
         return np.array(images)
     
@@ -436,7 +438,13 @@ class QRCodePreprocessor:
             
             # Resize to target size
             # Note: PIL expects (width, height) but our parameter is (height, width)
-            img = img.resize((target_size[1], target_size[0]), Image.LANCZOS)
+            # Use Image.Resampling.LANCZOS for Pillow 10.0.0+ compatibility
+            try:
+                resample_filter = Image.Resampling.LANCZOS
+            except AttributeError:
+                # Fallback for older Pillow versions
+                resample_filter = Image.LANCZOS
+            img = img.resize((target_size[1], target_size[0]), resample_filter)
             
             # Convert to numpy array and normalize to [0, 1]
             img_array = np.array(img, dtype=np.float32) / 255.0
