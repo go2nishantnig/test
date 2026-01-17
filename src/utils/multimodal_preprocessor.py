@@ -5,6 +5,8 @@ This module provides the MultimodalDataPreprocessor class that combines
 tabular transaction data with QR code images for multimodal fraud detection.
 """
 import numpy as np
+import pandas as pd
+import os
 from sklearn.model_selection import train_test_split
 
 from src.utils.tabular_preprocessor import FraudDataPreprocessor
@@ -27,6 +29,11 @@ class MultimodalDataPreprocessor:
         qr_preprocessor: QRCodePreprocessor for image data
     """
     
+    # Image augmentation parameters for replication
+    AUGMENTATION_NOISE_STD = 0.02  # Standard deviation for Gaussian noise
+    AUGMENTATION_CLIP_MIN = 0.0    # Minimum pixel value after augmentation
+    AUGMENTATION_CLIP_MAX = 1.0    # Maximum pixel value after augmentation
+    
     def __init__(self, image_size=(128, 128)):
         """
         Initialize the multimodal preprocessor.
@@ -36,6 +43,174 @@ class MultimodalDataPreprocessor:
         """
         self.fraud_preprocessor = FraudDataPreprocessor()
         self.qr_preprocessor = QRCodePreprocessor(image_size=image_size)
+    
+    def load_all_csv_data(self, csv_dir=None):
+        """
+        Load all CSV files from the CSV directory.
+        
+        Args:
+            csv_dir: Directory containing CSV files (default: DATA_DIR from config)
+            
+        Returns:
+            DataFrame with all CSV data combined
+        """
+        if csv_dir is None:
+            csv_dir = DATA_DIR
+        
+        print(f"\n{'='*70}")
+        print(f"LOADING ACTUAL CSV DATA")
+        print(f"{'='*70}")
+        print(f"CSV Data Directory: {csv_dir}")
+        
+        if not os.path.exists(csv_dir):
+            print(f"[CSV Data Processing] ✗ CSV directory not found: {csv_dir}")
+            raise FileNotFoundError(f"CSV directory not found: {csv_dir}")
+        
+        # Find all CSV files in the directory
+        csv_files = [f for f in os.listdir(csv_dir) if f.endswith('.csv')]
+        
+        if not csv_files:
+            print(f"[CSV Data Processing] ✗ No CSV files found in: {csv_dir}")
+            raise FileNotFoundError(f"No CSV files found in: {csv_dir}")
+        
+        print(f"[CSV Data Processing] Found {len(csv_files)} CSV file(s)")
+        for csv_file in csv_files:
+            print(f"  - {csv_file}")
+        
+        # Load and combine all CSV files
+        all_dataframes = []
+        total_records = 0
+        
+        for csv_file in csv_files:
+            csv_path = os.path.join(csv_dir, csv_file)
+            df = self.fraud_preprocessor.load_from_csv(csv_path)
+            all_dataframes.append(df)
+            total_records += len(df)
+            print(f"[CSV Data Processing]   Loaded {len(df)} records from {csv_file}")
+        
+        # Combine all dataframes
+        combined_df = pd.concat(all_dataframes, ignore_index=True)
+        
+        print(f"\n[CSV Data Processing] ✓ Total CSV records loaded: {total_records}")
+        print(f"[CSV Data Processing] Combined DataFrame shape: {combined_df.shape}")
+        
+        if 'isFraud' in combined_df.columns:
+            fraud_count = combined_df['isFraud'].sum()
+            fraud_ratio = fraud_count / len(combined_df)
+            print(f"[CSV Data Processing] Fraud records: {fraud_count} ({fraud_ratio:.2%})")
+            print(f"[CSV Data Processing] Normal records: {len(combined_df) - fraud_count} ({1-fraud_ratio:.2%})")
+        
+        print(f"{'='*70}\n")
+        
+        return combined_df
+    
+    def load_all_actual_data(self, csv_dir=None, image_dir=None):
+        """
+        Load all actual CSV and image data from directories.
+        
+        This method loads all CSV files from csv_dir and all images from image_dir,
+        then pairs them for multimodal training. If there's a mismatch in counts,
+        it will replicate the smaller dataset to match the larger one.
+        
+        Args:
+            csv_dir: Directory containing CSV files (default: DATA_DIR from config)
+            image_dir: Directory containing image data (default: QRCODE_DATASET_PATH from config)
+            
+        Returns:
+            Dictionary with 'tabular', 'images', and 'labels' keys
+        """
+        if csv_dir is None:
+            csv_dir = DATA_DIR
+        if image_dir is None:
+            image_dir = QRCODE_DATASET_PATH
+        
+        print(f"\n{'='*70}")
+        print(f"LOADING ALL ACTUAL DATA FOR MULTIMODAL TRAINING")
+        print(f"{'='*70}")
+        
+        # Load all CSV data
+        tabular_data = self.load_all_csv_data(csv_dir)
+        n_csv = len(tabular_data)
+        
+        # Load all image data
+        print(f"Image Data Directory: {image_dir}")
+        images, image_labels = self.qr_preprocessor.load_images_from_directory(image_dir)
+        n_images = len(images)
+        
+        print(f"\n{'='*70}")
+        print(f"DATA LOADED - HANDLING SIZE MISMATCH")
+        print(f"{'='*70}")
+        print(f"CSV records: {n_csv}")
+        print(f"Images available: {n_images}")
+        
+        # Handle size mismatch by replicating images to match CSV count
+        if n_csv > n_images:
+            print(f"\n[Data Pairing] CSV records ({n_csv}) > Images ({n_images})")
+            print(f"[Data Pairing] Strategy: Replicate images with augmentation to match CSV count")
+            
+            # Calculate how many times we need to replicate
+            replications_needed = (n_csv + n_images - 1) // n_images  # Ceiling division
+            
+            # Replicate images
+            replicated_images = []
+            replicated_labels = []
+            
+            for i in range(replications_needed):
+                # Add some noise/augmentation to replicated images for variety
+                if i == 0:
+                    # First copy: use original images
+                    replicated_images.append(images)
+                    replicated_labels.append(image_labels)
+                else:
+                    # Subsequent copies: add slight noise for variety
+                    noise = np.random.normal(0, self.AUGMENTATION_NOISE_STD, images.shape)
+                    augmented_images = np.clip(
+                        images + noise, 
+                        self.AUGMENTATION_CLIP_MIN, 
+                        self.AUGMENTATION_CLIP_MAX
+                    )
+                    replicated_images.append(augmented_images)
+                    replicated_labels.append(image_labels)
+            
+            images = np.concatenate(replicated_images, axis=0)[:n_csv]
+            image_labels = np.concatenate(replicated_labels, axis=0)[:n_csv]
+            
+            print(f"[Data Pairing] ✓ Images replicated to {len(images)} samples")
+            
+        elif n_images > n_csv:
+            print(f"\n[Data Pairing] Images ({n_images}) > CSV records ({n_csv})")
+            print(f"[Data Pairing] Strategy: Use first {n_csv} images to match CSV count")
+            
+            # Use only the first n_csv images
+            images = images[:n_csv]
+            image_labels = image_labels[:n_csv]
+            
+            print(f"[Data Pairing] ✓ Using first {len(images)} images")
+        else:
+            print(f"\n[Data Pairing] ✓ CSV records and images are already matched ({n_csv} samples)")
+        
+        # Shuffle images only to create random pairings with CSV records
+        # Note: CSV records and images come from independent datasets, so we
+        # intentionally shuffle only images to create random pairings between
+        # transaction records and QR code images for the multimodal model.
+        print(f"\n[Data Pairing] Shuffling images for random pairing with CSV records...")
+        indices = np.random.permutation(len(images))
+        images = images[indices]
+        print(f"[Data Pairing] ✓ Created random pairings between {n_csv} CSV records and {len(images)} images")
+        
+        print(f"\n{'='*70}")
+        print(f"MULTIMODAL DATA LOADING COMPLETE")
+        print(f"{'='*70}")
+        print(f"Total samples: {n_csv}")
+        print(f"CSV records: {len(tabular_data)}")
+        print(f"Images: {len(images)}")
+        print(f"{'='*70}\n")
+        
+        return {
+            'tabular': tabular_data,
+            'images': images,
+            'labels': tabular_data['isFraud'].values
+        }
         
     def generate_synthetic_multimodal_data(self, n_samples=5000, fraud_ratio=0.1):
         """
@@ -132,9 +307,9 @@ class MultimodalDataPreprocessor:
             'labels': y
         }
     
-    def prepare_train_test_data(self, test_size=0.2, random_state=42, n_samples=5000):
+    def prepare_train_test_data(self, test_size=0.2, random_state=42, n_samples=None, use_actual_data=True):
         """
-        Generate and prepare multimodal train/test data
+        Prepare multimodal train/test data from actual files or synthetic generation
         
         Creates stratified train/test splits maintaining the fraud ratio
         in both sets.
@@ -142,7 +317,9 @@ class MultimodalDataPreprocessor:
         Args:
             test_size: Fraction of data to use for testing
             random_state: Random seed for reproducibility
-            n_samples: Number of samples to generate
+            n_samples: Number of samples to generate (only used if use_actual_data=False)
+            use_actual_data: If True, loads actual CSV and image data from directories.
+                           If False, generates synthetic data with n_samples.
             
         Returns:
             Dictionary with train/test splits for both modalities:
@@ -153,8 +330,19 @@ class MultimodalDataPreprocessor:
             - X_test_images: Test images
             - y_test: Test labels
         """
-        # Generate synthetic multimodal data
-        data = self.generate_synthetic_multimodal_data(n_samples=n_samples)
+        # Load actual data or generate synthetic data
+        if use_actual_data:
+            print(f"\n{'='*70}")
+            print(f"USING ACTUAL DATA FROM FILES")
+            print(f"{'='*70}\n")
+            data = self.load_all_actual_data()
+        else:
+            print(f"\n{'='*70}")
+            print(f"USING SYNTHETIC DATA GENERATION")
+            print(f"{'='*70}\n")
+            if n_samples is None:
+                n_samples = 5000
+            data = self.generate_synthetic_multimodal_data(n_samples=n_samples)
         
         # Create indices for splitting
         indices = np.arange(len(data['labels']))

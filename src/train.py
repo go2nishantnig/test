@@ -2,8 +2,13 @@
 Training script for multimodal fraud detection transformer model
 
 Supports two training modes:
-1. Multimodal: Uses both tabular and image data
+1. Multimodal: Uses both tabular and image data (from actual files)
 2. Tabular-only: Uses only tabular data (backward compatible)
+
+Data Sources:
+- Multimodal mode loads ALL actual CSV files from data/csvdata/ directory
+- Multimodal mode loads ALL actual images from data/qrimages/QR codes/ directory
+- If CSV count != image count, the smaller dataset is replicated with augmentation
 """
 import os
 import sys
@@ -264,10 +269,10 @@ def train_multimodal_model():
     print("\n1. Preparing multimodal data...")
     preprocessor = MultimodalDataPreprocessor(image_size=MODEL_CONFIG.get('image_size', (128, 128)))
     
-    # Generate and preprocess multimodal data
+    # Load and preprocess actual multimodal data from files
     data = preprocessor.prepare_train_test_data(
         test_size=TRAINING_CONFIG['validation_split'],
-        n_samples=5000
+        use_actual_data=True  # Use all actual CSV and image data
     )
     
     print(f"   Training samples: {len(data['y_train'])}")
