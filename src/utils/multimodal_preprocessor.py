@@ -29,6 +29,11 @@ class MultimodalDataPreprocessor:
         qr_preprocessor: QRCodePreprocessor for image data
     """
     
+    # Image augmentation parameters for replication
+    AUGMENTATION_NOISE_STD = 0.02  # Standard deviation for Gaussian noise
+    AUGMENTATION_CLIP_MIN = 0.0    # Minimum pixel value after augmentation
+    AUGMENTATION_CLIP_MAX = 1.0    # Maximum pixel value after augmentation
+    
     def __init__(self, image_size=(128, 128)):
         """
         Initialize the multimodal preprocessor.
@@ -158,8 +163,12 @@ class MultimodalDataPreprocessor:
                     replicated_labels.append(image_labels)
                 else:
                     # Subsequent copies: add slight noise for variety
-                    noise = np.random.normal(0, 0.02, images.shape)
-                    augmented_images = np.clip(images + noise, 0, 1)
+                    noise = np.random.normal(0, self.AUGMENTATION_NOISE_STD, images.shape)
+                    augmented_images = np.clip(
+                        images + noise, 
+                        self.AUGMENTATION_CLIP_MIN, 
+                        self.AUGMENTATION_CLIP_MAX
+                    )
                     replicated_images.append(augmented_images)
                     replicated_labels.append(image_labels)
             
@@ -180,10 +189,14 @@ class MultimodalDataPreprocessor:
         else:
             print(f"\n[Data Pairing] ✓ CSV records and images are already matched ({n_csv} samples)")
         
-        # Shuffle the pairing to avoid any ordering bias
-        print(f"\n[Data Pairing] Shuffling data for random pairing...")
+        # Shuffle images only to create random pairings with CSV records
+        # Note: CSV records and images come from independent datasets, so we
+        # intentionally shuffle only images to create random pairings between
+        # transaction records and QR code images for the multimodal model.
+        print(f"\n[Data Pairing] Shuffling images for random pairing with CSV records...")
         indices = np.random.permutation(len(images))
         images = images[indices]
+        print(f"[Data Pairing] ✓ Created random pairings between {n_csv} CSV records and {len(images)} images")
         
         print(f"\n{'='*70}")
         print(f"MULTIMODAL DATA LOADING COMPLETE")
