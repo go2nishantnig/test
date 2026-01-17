@@ -24,10 +24,17 @@ import os
 DATA_BASE_PATH = '/home/ec2-user'
 # ============================================================================
 
-# Detect environment: Check if we're using a cloud/remote data directory structure
-# This includes both EC2 and Codespaces when DATA_BASE_PATH is set to a remote path
+# Determine the repository's base directory
+_REPO_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Detect environment: Determines if we should use remote/cloud directory structure
+# IS_EC2 is kept for backward compatibility, but it now detects any remote environment
+# Detection logic (any of these conditions triggers remote mode):
+# 1. DATA_BASE_PATH is set to something other than the repository directory
+# 2. We're running on an actual EC2 instance (for automatic detection)
+# 3. USE_EC2_CONFIG environment variable is explicitly set
 IS_EC2 = (
-    DATA_BASE_PATH != os.path.dirname(os.path.dirname(os.path.abspath(__file__))) or
+    DATA_BASE_PATH != _REPO_BASE_DIR or
     os.path.exists('/home/ec2-user') or 
     os.environ.get('USE_EC2_CONFIG') == '1'
 )
