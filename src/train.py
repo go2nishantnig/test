@@ -2,8 +2,13 @@
 Training script for multimodal fraud detection transformer model
 
 Supports two training modes:
-1. Multimodal: Uses both tabular and image data
+1. Multimodal: Uses both tabular and image data (from actual files)
 2. Tabular-only: Uses only tabular data (backward compatible)
+
+Data Sources:
+- Multimodal mode loads ALL actual CSV files from data/csvdata/ directory
+- Multimodal mode loads ALL actual images from data/qrimages/QR codes/ directory
+- If CSV count != image count, the smaller dataset is replicated with augmentation
 """
 import os
 import sys

@@ -181,7 +181,10 @@ python src/train.py --mode tabular
 ```
 
 **What happens during training:**
-1. Generates synthetic fraud detection dataset (or loads real data if available)
+1. **Loads ALL actual data from files**:
+   - All CSV files from `data/csvdata/` directory (or EC2 equivalent)
+   - All QR code images from `data/qrimages/QR codes/` directory
+   - If counts don't match, images are replicated with augmentation to match CSV count
 2. Preprocesses tabular and/or image data
 3. Builds the transformer model architecture
 4. Trains the model with early stopping and checkpointing
@@ -208,13 +211,28 @@ Image Data Directory: /home/ec2-user/qrimages/QR codes
     Example: /home/ec2-user/qrimages/QR codes/malicious/malicious/malicious_316254.png
 ----------------------------------------------------------------------
 
+======================================================================
+USING ACTUAL DATA FROM FILES
+======================================================================
+
 1. Preparing multimodal data...
-   Training samples: 4000
-   Testing samples: 1000
-   Fraud ratio in training: 10.00%
-   Fraud ratio in testing: 10.00%
-   Tabular shape: (4000, 8)
-   Image shape: (4000, 128, 128, 3)
+   Loading all CSV files from directory...
+   Found 1 CSV file(s)
+   ✓ Total CSV records loaded: 99
+   
+   Loading all images from directory...
+   ✓ Loaded 8 images (4 benign, 4 malicious)
+   
+   Handling data size mismatch...
+   Strategy: Replicate images with augmentation to match CSV count
+   ✓ Images replicated to 99 samples
+   
+   Training samples: 79
+   Testing samples: 20
+   Fraud ratio in training: 9.09%
+   Fraud ratio in testing: 9.09%
+   Tabular shape: (79, 1, 8)
+   Image shape: (79, 128, 128, 3)
 
 2. Building multimodal transformer model...
 ...
@@ -1097,17 +1115,24 @@ sudo chown -R ec2-user:ec2-user /home/ec2-user/{qrdata,csv-data,model}
 
 ### Data Requirements
 
-The system works with synthetic data by default for demonstration purposes. For production use:
+The system now loads ALL actual data from files for training:
 
 **Tabular Data (CSV):**
-- Place CSV files in `data/` (local) or `/home/ec2-user/csv-data/` (EC2)
+- Place CSV files in `data/csvdata/` (local) or `/home/ec2-user/csvdata/` (EC2)
+- **ALL CSV files in the directory will be loaded and combined**
 - Expected columns: `step`, `type`, `amount`, `nameOrig`, `oldbalanceOrg`, `newbalanceOrig`, `nameDest`, `oldbalanceDest`, `newbalanceDest`, `isFraud`, `isFlaggedFraud`
 - Note: `nameOrig` and `nameDest` are ID columns that are automatically dropped during preprocessing
 
 **Image Data (QR Codes):**
-- Place QR code images in `data/qr_codes/` (local) or `/home/ec2-user/qrdata/` (EC2)
+- Place QR code images in `data/qrimages/QR codes/` (local) or `/home/ec2-user/qrimages/QR codes/` (EC2)
+- Directory structure: `benign/benign/` and `malicious/malicious/` subdirectories
+- **ALL images in both subdirectories will be loaded**
 - Supported formats: PNG, JPG, JPEG
 - Images will be resized to 128x128
+
+**Data Matching:**
+- If CSV count ≠ image count, the smaller dataset is automatically replicated with augmentation to match
+- This ensures every training sample has both tabular features and an associated image
 
 ### Model Deployment
 
