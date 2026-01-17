@@ -4,11 +4,27 @@ Comprehensive validation script for CSV column compatibility.
 
 This script verifies that the code correctly handles all columns in the CSV file
 and produces a detailed report.
+
+Usage:
+    python validate_csv_compatibility.py [csv_path]
+    
+Arguments:
+    csv_path: Optional path to CSV file (default: data/test_transactions.csv)
 """
 import sys
 import os
-sys.path.insert(0, '/home/runner/work/test/test')
-os.chdir('/home/runner/work/test/test')
+
+# Detect project root dynamically
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(script_dir) != 'test':
+    # Script is in project root
+    project_root = script_dir
+else:
+    # Script might be in subdirectory
+    project_root = script_dir
+
+sys.path.insert(0, project_root)
+os.chdir(project_root)
 
 import pandas as pd
 import numpy as np
@@ -22,13 +38,25 @@ def print_section(title):
     print("=" * 70)
 
 
-def validate_csv_columns():
-    """Comprehensive validation of CSV columns against code expectations"""
+def validate_csv_columns(csv_path=None):
+    """Comprehensive validation of CSV columns against code expectations
+    
+    Args:
+        csv_path: Path to CSV file (default: data/test_transactions.csv)
+    """
     
     print_section("CSV Column Compatibility Validation Report")
     print("Generated to verify code matches CSV file structure")
     
-    csv_path = 'data/test_transactions.csv'
+    # Use default path if not provided
+    if csv_path is None:
+        csv_path = 'data/test_transactions.csv'
+    
+    # Check if file exists
+    if not os.path.exists(csv_path):
+        print(f"\n✗ Error: CSV file not found at {csv_path}")
+        print("Please provide a valid path to the CSV file.")
+        return False
     
     # 1. CSV File Analysis
     print_section("1. CSV File Analysis")
@@ -150,7 +178,10 @@ def validate_csv_columns():
 
 if __name__ == '__main__':
     try:
-        success = validate_csv_columns()
+        # Get CSV path from command line argument if provided
+        csv_path = sys.argv[1] if len(sys.argv) > 1 else None
+        
+        success = validate_csv_columns(csv_path)
         sys.exit(0 if success else 1)
     except Exception as e:
         print(f"\n✗ Validation failed with error: {e}")
