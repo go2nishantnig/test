@@ -406,7 +406,10 @@ test/
 
 ```python
 # Data paths
-DATA_BASE_PATH = '/home/ec2-user'  # or '/workspaces/test/data'
+# For AWS EC2: Use '/home/ec2-user'
+# For GitHub Codespaces: Use '/workspaces/test/data'
+# For local development: Use your local project path
+DATA_BASE_PATH = '/home/ec2-user'
 
 # Training parameters
 BATCH_SIZE = 32
@@ -420,8 +423,9 @@ HIDDEN_DIM = 256
 NUM_TRANSFORMER_LAYERS = 4
 
 # Image processing
+# 224x224 is standard input size for Vision Transformers (ViT)
 IMAGE_SIZE = (224, 224)
-IMAGE_CHANNELS = 3
+IMAGE_CHANNELS = 3  # RGB color channels
 ```
 
 ### Appendix C: Environment Validation
@@ -478,12 +482,14 @@ python check_ec2_env.py
 - Required columns: Transaction features, labels
 - Recommended size: 10,000+ samples for training
 - Train/validation/test split: 70/15/15
+- Typical dataset size used in benchmarks: 50,000-100,000 samples
 
 **Image Data Format:**
 - File format: PNG, JPEG
 - Resolution: 224x224 pixels (automatically resized)
 - Color space: RGB
 - Organization: Structured directory with corresponding labels
+- Typical dataset size used in benchmarks: 50,000-100,000 images
 
 ---
 
