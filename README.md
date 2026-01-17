@@ -641,7 +641,8 @@ The system works with synthetic data by default for demonstration purposes. For 
 
 **Tabular Data (CSV):**
 - Place CSV files in `data/` (local) or `/home/ec2-user/csv-data/` (EC2)
-- Expected columns: `step`, `type`, `amount`, `oldbalanceOrg`, `newbalanceOrig`, `oldbalanceDest`, `newbalanceDest`, `isFlaggedFraud`, `isFraud`
+- Expected columns: `step`, `type`, `amount`, `nameOrig`, `oldbalanceOrg`, `newbalanceOrig`, `nameDest`, `oldbalanceDest`, `newbalanceDest`, `isFraud`, `isFlaggedFraud`
+- Note: `nameOrig` and `nameDest` are ID columns that are automatically dropped during preprocessing
 
 **Image Data (QR Codes):**
 - Place QR code images in `data/qr_codes/` (local) or `/home/ec2-user/qrdata/` (EC2)
