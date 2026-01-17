@@ -9,8 +9,20 @@ Environment-aware configuration:
 - Automatically detects EC2 environment (/home/ec2-user exists)
 - Can be forced with USE_EC2_CONFIG environment variable
 - Falls back to local paths for development
+
+IMPORTANT: To switch between environments, change DATA_BASE_PATH below:
+- For AWS EC2: DATA_BASE_PATH = '/home/ec2-user'
+- For GitHub Codespaces: DATA_BASE_PATH = '/workspaces/test/data'
 """
 import os
+
+# ============================================================================
+# CONFIGURABLE BASE PATH - CHANGE THIS TO SWITCH ENVIRONMENTS
+# ============================================================================
+# For AWS EC2, use: DATA_BASE_PATH = '/home/ec2-user'
+# For GitHub Codespaces, use: DATA_BASE_PATH = '/workspaces/test/data'
+DATA_BASE_PATH = '/home/ec2-user'
+# ============================================================================
 
 # Detect environment: Check for EC2 or environment variable
 IS_EC2 = os.path.exists('/home/ec2-user') or os.environ.get('USE_EC2_CONFIG') == '1'
@@ -18,7 +30,7 @@ IS_EC2 = os.path.exists('/home/ec2-user') or os.environ.get('USE_EC2_CONFIG') ==
 # Base paths - adapt based on environment
 if IS_EC2:
     # EC2-specific paths
-    EC2_USER_HOME = '/home/ec2-user'
+    EC2_USER_HOME = DATA_BASE_PATH
     BASE_DIR = os.path.join(EC2_USER_HOME, 'test')  # Repository location on EC2
     MODEL_SAVE_DIR = os.path.join(EC2_USER_HOME, 'model')
     DATA_DIR = os.path.join(EC2_USER_HOME, 'csvdata')
