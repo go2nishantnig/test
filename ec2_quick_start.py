@@ -45,10 +45,8 @@ from src.models.transformer_model import (
     MultimodalFraudDetectionTransformer,
     FraudDetectionTransformer
 )
-from src.utils.data_preprocessing import (
-    FraudDataPreprocessor,
-    MultimodalDataPreprocessor
-)
+from src.utils.data_preprocessing import FraudDataPreprocessor
+from src.utils.multimodal_preprocessor import MultimodalDataPreprocessor
 
 import tensorflow as tf
 from tensorflow import keras
