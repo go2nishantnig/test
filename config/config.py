@@ -23,7 +23,11 @@ import os
 # For GitHub Codespaces, use: DATA_BASE_PATH = '/workspaces/test/data'
 # Determine the repository's base directory
 _REPO_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_BASE_PATH = _REPO_BASE_DIR
+# Auto-detect EC2 environment and set appropriate base path
+if os.path.exists('/home/ec2-user') or os.environ.get('USE_EC2_CONFIG') == '1':
+    DATA_BASE_PATH = '/home/ec2-user'
+else:
+    DATA_BASE_PATH = _REPO_BASE_DIR
 # ============================================================================
 
 # Detect environment: Determines if we should use remote/cloud directory structure
