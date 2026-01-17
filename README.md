@@ -41,6 +41,15 @@ The system can run in two modes:
   - [4. Run Setup Script](#4-run-setup-script)
   - [5. Run Training on EC2](#5-run-training-on-ec2)
   - [6. (Optional) Use Jupyter Notebook](#6-optional-use-jupyter-notebook)
+- [Making Predictions with predict.py](#making-predictions-with-predictpy)
+  - [Prerequisites](#prerequisites-1)
+  - [Where to Use predict.py](#where-to-use-predictpy)
+  - [When to Use predict.py](#when-to-use-predictpy)
+  - [How to Use predict.py](#how-to-use-predictpy)
+  - [Using predict.py in GitHub Codespaces](#using-predictpy-in-github-codespaces)
+  - [Using predict.py on AWS EC2](#using-predictpy-on-aws-ec2)
+  - [Troubleshooting predict.py](#troubleshooting-predictpy)
+  - [Performance Considerations](#performance-considerations)
 - [Project Structure](#project-structure)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
@@ -460,6 +469,393 @@ This notebook contains the complete end-to-end pipeline with visualization and d
 
 ---
 
+## Making Predictions with predict.py
+
+After training your model, you can use the `predict.py` script to make fraud predictions on new transactions. This script works in both **multimodal** and **tabular-only** modes, matching your training configuration.
+
+### Prerequisites
+
+Before running predictions, you must have:
+1. ✅ **Trained Model**: Run training first using `python src/train.py --mode [multimodal|tabular]`
+2. ✅ **Saved Model Files**: The script looks for model files in the saved models directory:
+   - **Local**: `models/saved_models/fraud_detection_v1_final.keras`
+   - **EC2**: `/home/ec2-user/model/fraud_detection_v1_final.keras`
+3. ✅ **Preprocessor Files**: Saved preprocessors for data normalization
+
+### Where to Use predict.py
+
+The script automatically adapts to your environment:
+
+| Environment | Model Location | Configuration |
+|------------|----------------|---------------|
+| **GitHub Codespaces** | `models/saved_models/` | Set `DATA_BASE_PATH = '/workspaces/test/data'` in `config/config.py` |
+| **AWS EC2** | `/home/ec2-user/model/` | Set `DATA_BASE_PATH = '/home/ec2-user'` in `config/config.py` |
+| **Local Development** | `models/saved_models/` | Use repository-relative paths |
+
+### When to Use predict.py
+
+Use `predict.py` for:
+- 🔍 **Testing trained models** with sample data
+- 📊 **Batch predictions** on multiple transactions
+- 🧪 **Model validation** before deployment
+- 💡 **Demonstrating model capabilities** with synthetic data
+- 🚀 **Development and debugging** of inference pipelines
+
+### How to Use predict.py
+
+#### Option 1: Demo Mode (Quick Test)
+
+The easiest way to test your trained model is to run the demo mode, which generates synthetic test data:
+
+**Multimodal Mode** (Tabular + Image):
+```bash
+# In GitHub Codespaces or Local
+python src/predict.py --mode multimodal
+
+# On AWS EC2
+cd /home/ec2-user/test
+source /home/ec2-user/fraud_detection_env/bin/activate
+python src/predict.py --mode multimodal
+```
+
+**Tabular-Only Mode**:
+```bash
+# In GitHub Codespaces or Local
+python src/predict.py --mode tabular
+
+# On AWS EC2
+cd /home/ec2-user/test
+source /home/ec2-user/fraud_detection_env/bin/activate
+python src/predict.py --mode tabular
+```
+
+**Demo Output Example:**
+```
+======================================================================
+Multimodal Fraud Detection Transformer - Inference Demo
+======================================================================
+
+Loading model from: models/saved_models/fraud_detection_v1_final.keras
+Loading preprocessor from: models/saved_models/fraud_detection_v1_preprocessor.pkl
+Model and preprocessor loaded successfully!
+
+1. Generating sample multimodal test data...
+
+2. Making predictions...
+
+======================================================================
+Prediction Results:
+======================================================================
+
+Sample predictions:
+   step    type    amount  isFraud  predicted_fraud  fraud_probability
+0     1    CASH    5234.5        0                0             0.0234
+1     2 PAYMENT   15678.2        1                1             0.9876
+2     3 TRANSFER   8923.4        0                0             0.1234
+...
+
+======================================================================
+Performance Metrics:
+======================================================================
+Accuracy:  0.9500
+Precision: 0.8750
+Recall:    0.9333
+F1 Score:  0.9032
+```
+
+#### Option 2: Python API (Programmatic Use)
+
+Use the predictor classes in your own Python scripts:
+
+**Multimodal Predictions:**
+```python
+from src.predict import MultimodalFraudDetectionPredictor
+import numpy as np
+import pandas as pd
+
+# Initialize predictor
+predictor = MultimodalFraudDetectionPredictor()
+
+# Prepare your data
+transaction_data = pd.DataFrame({
+    'step': [1],
+    'type': ['TRANSFER'],
+    'amount': [181.0],
+    'oldbalanceOrg': [181.0],
+    'newbalanceOrig': [0.0],
+    'oldbalanceDest': [0.0],
+    'newbalanceDest': [181.0],
+    'isFlaggedFraud': [0]
+})
+
+# Load or create QR code image (normalized to [0, 1])
+qr_image = np.random.rand(128, 128, 3)  # Example: random image
+
+# Make prediction for single transaction
+result = predictor.predict_single_transaction(
+    tabular_features=transaction_data,
+    image=qr_image,
+    threshold=0.5
+)
+
+print(f"Is Fraud: {result['is_fraud']}")
+print(f"Fraud Probability: {result['fraud_probability']:.4f}")
+print(f"Prediction: {result['prediction']}")
+```
+
+**Tabular-Only Predictions:**
+```python
+from src.predict import FraudDetectionPredictor
+import pandas as pd
+
+# Initialize predictor
+predictor = FraudDetectionPredictor()
+
+# Single transaction prediction
+transaction = {
+    'step': 1,
+    'type': 'TRANSFER',
+    'amount': 181.0,
+    'oldbalanceOrg': 181.0,
+    'newbalanceOrig': 0.0,
+    'oldbalanceDest': 0.0,
+    'newbalanceDest': 181.0,
+    'isFlaggedFraud': 0
+}
+
+result = predictor.predict_single_transaction(transaction)
+print(f"Fraud Probability: {result['fraud_probability']:.4f}")
+```
+
+**Batch Predictions:**
+```python
+from src.predict import MultimodalFraudDetectionPredictor
+import pandas as pd
+import numpy as np
+
+predictor = MultimodalFraudDetectionPredictor()
+
+# Load your CSV data
+transactions_df = pd.read_csv('your_transactions.csv')
+
+# Load corresponding QR images
+qr_images = np.load('your_qr_images.npy')  # Shape: (n_samples, 128, 128, 3)
+
+# Make batch predictions
+results = predictor.predict(
+    tabular_data=transactions_df,
+    images=qr_images,
+    threshold=0.5
+)
+
+# Access results
+print(f"Predictions: {results['predictions']}")
+print(f"Probabilities: {results['probabilities']}")
+print(f"Fraud flags: {results['is_fraud']}")
+```
+
+#### Option 3: Integration into Production Pipeline
+
+For production deployments, integrate the predictor classes into your application:
+
+```python
+# Example: Flask API endpoint
+from flask import Flask, request, jsonify
+from src.predict import MultimodalFraudDetectionPredictor
+import numpy as np
+import pandas as pd
+
+app = Flask(__name__)
+predictor = MultimodalFraudDetectionPredictor()
+
+@app.route('/predict', methods=['POST'])
+def predict_fraud():
+    data = request.json
+    
+    # Extract transaction features
+    transaction = pd.DataFrame([data['transaction']])
+    
+    # Decode QR image (assuming base64 encoded)
+    import base64
+    from PIL import Image
+    import io
+    
+    qr_bytes = base64.b64decode(data['qr_image'])
+    qr_image = Image.open(io.BytesIO(qr_bytes))
+    qr_array = np.array(qr_image.resize((128, 128))) / 255.0
+    
+    # Make prediction
+    result = predictor.predict_single_transaction(transaction, qr_array)
+    
+    return jsonify(result)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+```
+
+### Using predict.py in GitHub Codespaces
+
+**Step-by-Step:**
+
+1. **Configure Environment**:
+   ```bash
+   # Edit config/config.py and set:
+   DATA_BASE_PATH = '/workspaces/test/data'
+   ```
+
+2. **Train Model** (if not already trained):
+   ```bash
+   python src/train.py --mode multimodal
+   ```
+
+3. **Run Prediction Demo**:
+   ```bash
+   python src/predict.py --mode multimodal
+   ```
+
+4. **Use in Jupyter Notebook**:
+   - The Codespaces environment supports Jupyter notebooks
+   - Open `notebooks/multimodal_fraud_detection_pipeline.ipynb`
+   - Import and use the predictor classes interactively
+
+**Codespaces Advantages:**
+- ✅ No setup required - everything is pre-configured
+- ✅ Direct integration with VS Code
+- ✅ Easy to share and collaborate
+- ✅ Version control built-in
+
+### Using predict.py on AWS EC2
+
+**Step-by-Step:**
+
+1. **SSH into EC2**:
+   ```bash
+   ssh -i /path/to/your-key.pem ec2-user@<EC2-PUBLIC-IP>
+   ```
+
+2. **Navigate to Repository**:
+   ```bash
+   cd /home/ec2-user/test
+   ```
+
+3. **Activate Virtual Environment**:
+   ```bash
+   source /home/ec2-user/fraud_detection_env/bin/activate
+   ```
+
+4. **Verify Configuration** (should already be set for EC2):
+   ```bash
+   # Check that config/config.py has:
+   # DATA_BASE_PATH = '/home/ec2-user'
+   cat config/config.py | grep DATA_BASE_PATH
+   ```
+
+5. **Train Model** (if not already trained):
+   ```bash
+   python ec2_quick_start.py --mode multimodal
+   # OR
+   python src/train.py --mode multimodal
+   ```
+
+6. **Run Prediction Demo**:
+   ```bash
+   python src/predict.py --mode multimodal
+   ```
+
+7. **Run Predictions in Background** (for long-running jobs):
+   ```bash
+   nohup python src/predict.py --mode multimodal > predictions.log 2>&1 &
+   
+   # Check progress
+   tail -f predictions.log
+   ```
+
+**EC2 Advantages:**
+- ✅ GPU acceleration (G5.xlarge with NVIDIA A10G)
+- ✅ Faster inference for large batches
+- ✅ Can handle production workloads
+- ✅ Persistent storage for models and data
+
+### Troubleshooting predict.py
+
+#### Error: "No trained model found"
+
+**Solution**: Train the model first before running predictions:
+```bash
+# For multimodal mode
+python src/train.py --mode multimodal
+
+# For tabular-only mode
+python src/train.py --mode tabular
+```
+
+#### Error: "ModuleNotFoundError"
+
+**Solution**: Ensure dependencies are installed and virtual environment is activated:
+```bash
+# Activate virtual environment
+source fraud_env/bin/activate  # Local/Codespaces
+# OR
+source /home/ec2-user/fraud_detection_env/bin/activate  # EC2
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+#### Error: "Model and preprocessor paths don't match"
+
+**Solution**: Ensure you're using the correct mode (multimodal vs tabular) that matches your trained model:
+```bash
+# Check what models are available
+ls -l models/saved_models/  # Local/Codespaces
+# OR
+ls -l /home/ec2-user/model/  # EC2
+
+# Use the correct mode
+python src/predict.py --mode multimodal  # or --mode tabular
+```
+
+#### Error: "Cannot load model - custom objects not found"
+
+**Solution**: The script automatically imports custom layers. If you still see this error:
+```python
+# The predict.py already handles this, but if needed manually:
+from src.models.transformer_model import (
+    MultiHeadSelfAttention,
+    TransformerBlock,
+    CrossModalAttention,
+    CrossModalTransformerBlock,
+    PatchEmbedding
+)
+```
+
+#### Error: Path-related issues
+
+**Solution**: Verify your `DATA_BASE_PATH` in `config/config.py` matches your environment:
+- **Codespaces**: `/workspaces/test/data`
+- **EC2**: `/home/ec2-user`
+- **Local**: Use repository-relative paths (default)
+
+### Performance Considerations
+
+**Inference Speed:**
+- **GPU (EC2 G5.xlarge)**: ~10-20ms per sample
+- **CPU**: ~50-100ms per sample
+- **Batch processing**: More efficient than individual predictions
+
+**Memory Usage:**
+- **Multimodal model**: ~500MB-1GB RAM
+- **Tabular-only model**: ~200-500MB RAM
+- **QR images**: ~50KB per image (128x128x3)
+
+**Optimization Tips:**
+1. Use batch predictions for multiple samples
+2. Enable GPU if available for faster inference
+3. Adjust `threshold` parameter to balance precision/recall
+4. Cache the predictor instance for repeated predictions
+
+---
+
 ## Project Structure
 
 ```
@@ -475,6 +871,7 @@ test/
 ├── src/
 │   ├── __init__.py
 │   ├── train.py                      # Main training script
+│   ├── predict.py                    # Inference/prediction script
 │   ├── models/
 │   │   ├── __init__.py
 │   │   ├── transformer_model.py      # Multimodal transformer models
@@ -740,6 +1137,9 @@ pip install -r requirements.txt
 # Train
 python src/train.py --mode multimodal
 
+# Predict (after training)
+python src/predict.py --mode multimodal
+
 # Monitor
 tensorboard --logdir logs/
 ```
@@ -753,11 +1153,18 @@ source /home/ec2-user/fraud_detection_env/bin/activate
 # Train
 python ec2_quick_start.py --mode multimodal
 
+# Predict (after training)
+python src/predict.py --mode multimodal
+
 # Background training
 nohup python ec2_quick_start.py --mode multimodal > training.log 2>&1 &
 
+# Background predictions
+nohup python src/predict.py --mode multimodal > predictions.log 2>&1 &
+
 # Monitor
 tail -f training.log
+tail -f predictions.log
 watch -n 1 nvidia-smi
 ```
 
