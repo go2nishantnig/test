@@ -4,14 +4,41 @@ Configuration file for multimodal fraud detection transformer model
 This model supports two modalities:
 1. Tabular data: Online Payments Fraud Detection features
 2. Image data: QR Code images (benign vs malicious)
+
+Environment-aware configuration:
+- Automatically detects EC2 environment (/home/ec2-user exists)
+- Can be forced with USE_EC2_CONFIG environment variable
+- Falls back to local paths for development
 """
 import os
 
-# Base paths
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_SAVE_DIR = os.path.join(BASE_DIR, 'models', 'saved_models')
-DATA_DIR = os.path.join(BASE_DIR, 'data')
-LOG_DIR = os.path.join(BASE_DIR, 'logs')
+# Detect environment: Check for EC2 or environment variable
+IS_EC2 = os.path.exists('/home/ec2-user') or os.environ.get('USE_EC2_CONFIG') == '1'
+
+# Base paths - adapt based on environment
+if IS_EC2:
+    # EC2-specific paths
+    EC2_USER_HOME = '/home/ec2-user'
+    BASE_DIR = os.path.join(EC2_USER_HOME, 'test')  # Repository location on EC2
+    MODEL_SAVE_DIR = os.path.join(EC2_USER_HOME, 'model')
+    DATA_DIR = os.path.join(EC2_USER_HOME, 'csv-data')
+    LOG_DIR = os.path.join(MODEL_SAVE_DIR, 'logs')
+    QRCODE_DATASET_PATH = os.path.join(EC2_USER_HOME, 'qrdata')
+    
+    # EC2 directory mapping for convenience
+    EC2_DIRS = {
+        'qrdata': QRCODE_DATASET_PATH,
+        'csv_data': DATA_DIR,
+        'model': MODEL_SAVE_DIR,
+        'logs': LOG_DIR,
+    }
+else:
+    # Local development paths
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    MODEL_SAVE_DIR = os.path.join(BASE_DIR, 'models', 'saved_models')
+    DATA_DIR = os.path.join(BASE_DIR, 'data')
+    LOG_DIR = os.path.join(BASE_DIR, 'logs')
+    QRCODE_DATASET_PATH = os.path.join(DATA_DIR, 'qr_codes')
 
 # Ensure directories exist
 os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
@@ -78,4 +105,15 @@ MODEL_VERSION = 'v2.0'
 
 # Dataset paths (for real data loading)
 FRAUD_DATASET_PATH = os.path.join(DATA_DIR, 'online_payments_fraud.csv')
-QRCODE_DATASET_PATH = os.path.join(DATA_DIR, 'qr_codes')
+
+# GPU Configuration (for EC2 G5 XLarge with NVIDIA A10G or other GPU systems)
+GPU_CONFIG = {
+    'memory_growth': True,  # Allow memory growth instead of allocating all GPU memory
+    'mixed_precision': True,  # Use mixed precision for faster training
+}
+
+# Backward compatibility aliases for EC2-specific code
+EC2_QRDATA_DIR = QRCODE_DATASET_PATH
+EC2_CSV_DATA_DIR = DATA_DIR
+EC2_MODEL_DIR = MODEL_SAVE_DIR
+EC2_LOG_DIR = LOG_DIR

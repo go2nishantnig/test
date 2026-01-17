@@ -110,22 +110,19 @@ pip install --upgrade pip
 
 # Install Python dependencies from requirements.txt
 print_info "Installing Python dependencies..."
-if [ -f "requirements_ec2.txt" ]; then
-    pip install -r requirements_ec2.txt
-    print_success "Dependencies from requirements_ec2.txt installed"
-elif [ -f "requirements.txt" ]; then
+if [ -f "requirements.txt" ]; then
     pip install -r requirements.txt
     print_success "Dependencies from requirements.txt installed"
 else
-    print_error "requirements files not found. Installing dependencies manually..."
+    print_error "requirements.txt not found. Installing dependencies manually..."
     pip install tensorflow>=2.13.0 numpy>=1.24.0 pandas>=2.0.0 scikit-learn>=1.3.0 \
                 matplotlib>=3.7.0 seaborn>=0.12.0 jupyter>=1.0.0 Pillow>=10.0.0
     print_success "Core dependencies installed"
 fi
 
-# Install additional useful packages for EC2
-print_info "Installing additional packages for EC2..."
-pip install jupyterlab ipywidgets tqdm boto3
+# Install additional useful packages for EC2 (if not already in requirements)
+print_info "Ensuring additional packages for EC2 are installed..."
+pip install jupyterlab ipywidgets tqdm boto3 --upgrade
 
 print_success "Additional packages installed"
 

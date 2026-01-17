@@ -27,16 +27,17 @@ os.environ['USE_EC2_CONFIG'] = '1'
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Import EC2 configuration
-from config.ec2_config import (
+# Import unified configuration
+from config.config import (
     MODEL_CONFIG,
     TRAINING_CONFIG,
-    EC2_QRDATA_DIR,
-    EC2_CSV_DATA_DIR,
-    EC2_MODEL_DIR,
+    QRCODE_DATASET_PATH,
+    DATA_DIR,
+    MODEL_SAVE_DIR,
     MODEL_NAME,
     MODEL_VERSION,
-    GPU_CONFIG
+    GPU_CONFIG,
+    IS_EC2
 )
 
 # Import model and preprocessing utilities
@@ -93,9 +94,9 @@ def verify_directories():
     print("=" * 70)
     
     dirs = {
-        'QR Data': EC2_QRDATA_DIR,
-        'CSV Data': EC2_CSV_DATA_DIR,
-        'Model': EC2_MODEL_DIR,
+        'QR Data': QRCODE_DATASET_PATH,
+        'CSV Data': DATA_DIR,
+        'Model': MODEL_SAVE_DIR,
     }
     
     all_exist = True
@@ -151,7 +152,7 @@ def train_multimodal():
     
     # Save preprocessors
     preprocessor_path = os.path.join(
-        EC2_MODEL_DIR,
+        MODEL_SAVE_DIR,
         f'{MODEL_NAME}_{MODEL_VERSION}_preprocessor.pkl'
     )
     preprocessor.save_preprocessors(preprocessor_path)
@@ -171,7 +172,7 @@ def train_multimodal():
     print("\n4. Setting up training callbacks...")
     
     checkpoint_path = os.path.join(
-        EC2_MODEL_DIR,
+        MODEL_SAVE_DIR,
         f'{MODEL_NAME}_{MODEL_VERSION}_best.keras'
     )
     
@@ -196,7 +197,7 @@ def train_multimodal():
             verbose=1
         ),
         keras.callbacks.TensorBoard(
-            log_dir=os.path.join(EC2_MODEL_DIR, 'logs'),
+            log_dir=os.path.join(MODEL_SAVE_DIR, 'logs'),
             histogram_freq=1
         )
     ]
@@ -239,7 +240,7 @@ def train_multimodal():
     
     # Save final model
     final_path = os.path.join(
-        EC2_MODEL_DIR,
+        MODEL_SAVE_DIR,
         f'{MODEL_NAME}_{MODEL_VERSION}_final.keras'
     )
     model.save(final_path)
@@ -248,9 +249,9 @@ def train_multimodal():
     print("\n" + "=" * 70)
     print("Training Complete!")
     print("=" * 70)
-    print(f"\nModel artifacts saved to: {EC2_MODEL_DIR}")
+    print(f"\nModel artifacts saved to: {MODEL_SAVE_DIR}")
     print("\nTo view TensorBoard:")
-    print(f"  tensorboard --logdir={os.path.join(EC2_MODEL_DIR, 'logs')}")
+    print(f"  tensorboard --logdir={os.path.join(MODEL_SAVE_DIR, 'logs')}")
 
 
 def train_tabular():
@@ -314,7 +315,7 @@ def train_tabular():
     print(f"   Accuracy: {test_accuracy:.4f}")
     
     # Save model
-    final_path = os.path.join(EC2_MODEL_DIR, 'tabular_fraud_detection.keras')
+    final_path = os.path.join(MODEL_SAVE_DIR, 'tabular_fraud_detection.keras')
     model.save(final_path)
     print(f"\n✓ Model saved to: {final_path}")
     
