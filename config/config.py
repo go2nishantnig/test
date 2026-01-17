@@ -45,9 +45,13 @@ try:
     os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(LOG_DIR, exist_ok=True)
-except (PermissionError, OSError):
+except PermissionError:
     # Directory creation may fail on EC2 before setup script runs
-    # This is expected - the setup script will create them
+    # This is expected - the setup script will create them with proper permissions
+    pass
+except FileNotFoundError:
+    # Parent directories may not exist yet on fresh EC2 instances
+    # The setup script will create the full directory tree
     pass
 
 # Tabular data configuration (Online Payments Fraud Detection)

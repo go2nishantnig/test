@@ -122,7 +122,7 @@ fi
 
 # Install additional useful packages for EC2 (if not already in requirements)
 print_info "Ensuring additional packages for EC2 are installed..."
-pip install jupyterlab ipywidgets tqdm boto3 --upgrade
+pip install jupyterlab ipywidgets tqdm boto3
 
 print_success "Additional packages installed"
 
