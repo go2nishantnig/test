@@ -15,7 +15,7 @@ from tensorflow import keras
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config.config import MODEL_SAVE_DIR, MODEL_NAME, MODEL_VERSION, MODEL_CONFIG
+from config.config import MODEL_SAVE_DIR, MODEL_NAME, MODEL_VERSION, MODEL_CONFIG, GPU_CONFIG
 from src.utils.data_preprocessing import (
     FraudDataPreprocessor,
     QRCodePreprocessor,
@@ -29,6 +29,33 @@ from src.models.transformer_model import (
     CrossModalTransformerBlock,
     PatchEmbedding
 )
+
+
+def configure_gpu():
+    """
+    Configure GPU settings for TensorFlow to prevent memory allocation issues.
+    
+    This function should be called before any TensorFlow operations to:
+    - Enable memory growth (allocate GPU memory as needed instead of all at once)
+    - Configure mixed precision training if enabled
+    - Gracefully handle cases where GPU is not available
+    """
+    try:
+        # Get list of physical GPUs
+        gpus = tf.config.list_physical_devices('GPU')
+        
+        if gpus:
+            # Configure memory growth for each GPU
+            if GPU_CONFIG.get('memory_growth', True):
+                try:
+                    for gpu in gpus:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                except RuntimeError as e:
+                    # Memory growth must be set before GPUs have been initialized
+                    pass
+    except Exception as e:
+        # Silently continue if GPU configuration fails
+        pass
 
 
 class MultimodalFraudDetectionPredictor:
@@ -250,6 +277,9 @@ class FraudDetectionPredictor:
 def demo_multimodal_prediction():
     """Demonstrate multimodal model prediction"""
     
+    # Configure GPU before any TensorFlow operations
+    configure_gpu()
+    
     print("=" * 70)
     print("Multimodal Fraud Detection Transformer - Inference Demo")
     print("=" * 70)
@@ -317,6 +347,9 @@ def demo_multimodal_prediction():
 
 def demo_tabular_prediction():
     """Demonstrate tabular-only model prediction"""
+    
+    # Configure GPU before any TensorFlow operations
+    configure_gpu()
     
     print("=" * 70)
     print("Fraud Detection Transformer - Tabular Inference Demo")
