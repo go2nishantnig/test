@@ -6,11 +6,6 @@ tabular transaction data with QR code images for multimodal fraud detection.
 """
 import numpy as np
 from sklearn.model_selection import train_test_split
-import sys
-import os
-
-# Add parent directory to path for config import
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.utils.tabular_preprocessor import FraudDataPreprocessor
 from src.utils.image_preprocessor import QRCodePreprocessor
