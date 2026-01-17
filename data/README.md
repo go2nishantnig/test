@@ -11,7 +11,7 @@ A small test dataset with 100 lines (1 header + 99 data rows) for local testing 
 The CSV file contains the following columns:
 
 1. **step**: Hour of simulation (1-9)
-2. **type**: Transaction type (PAYMENT, TRANSFER, CASH_OUT, DEBIT, CASH_IN)
+2. **type**: Transaction type (PAYMENT, TRANSFER, CASH_OUT, DEBIT)
 3. **amount**: Transaction amount
 4. **nameOrig**: Origin account identifier (e.g., C1231006815)
 5. **oldbalanceOrg**: Origin account balance before transaction
