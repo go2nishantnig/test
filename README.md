@@ -68,9 +68,12 @@ The system can run in two modes:
 ### 1. Clone the Repository
 
 ```bash
+# Clone the repository
 git clone https://github.com/go2nishantnig/test.git
 cd test
 ```
+
+> **Note**: If you forked this repository, replace the URL with your fork's URL: `git clone https://github.com/YOUR-USERNAME/test.git`
 
 ### 2. Set Up Python Environment
 
@@ -208,6 +211,12 @@ You should see:
 
 **Launch via AWS CLI:**
 ```bash
+# Note: Replace the placeholder values below with your actual AWS resource IDs
+# - ami-xxxxxxxxx: Your chosen AMI ID (find in AWS Console or via 'aws ec2 describe-images')
+# - your-key-pair: Your EC2 key pair name
+# - sg-xxxxxxxxx: Your security group ID
+# - subnet-xxxxxxxxx: Your VPC subnet ID
+
 aws ec2 run-instances \
     --image-id ami-xxxxxxxxx \
     --instance-type g5.xlarge \
@@ -541,8 +550,8 @@ pip install -r requirements.txt
 #### Issue: GPU not detected
 **Solution**: 
 1. Check CUDA installation: `nvidia-smi`
-2. Install TensorFlow GPU version: `pip install tensorflow[and-cuda]`
-3. Verify: `python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"`
+2. Verify TensorFlow installation (GPU support is included by default in TensorFlow 2.x): `pip install --upgrade tensorflow`
+3. Verify GPU detection: `python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"`
 
 #### Issue: Out of memory (OOM) errors
 **Solution**:
