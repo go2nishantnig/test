@@ -59,7 +59,10 @@ class MultimodalDataPreprocessor:
         print(f"MULTIMODAL DATA GENERATION")
         print(f"{'='*70}")
         print(f"CSV Data Directory: {DATA_DIR}")
-        print(f"Image Data Directory: {QRCODE_DATASET_PATH}")
+        print(f"  Example CSV file: {DATA_DIR}/PS_20174392719_1491204439457_log.csv")
+        print(f"\nImage Data Directory: {QRCODE_DATASET_PATH}")
+        print(f"  Benign images: {QRCODE_DATASET_PATH}/benign/benign/")
+        print(f"  Malicious images: {QRCODE_DATASET_PATH}/malicious/malicious/")
         print(f"{'='*70}")
         
         # Generate tabular data

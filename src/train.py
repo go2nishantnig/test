@@ -238,6 +238,20 @@ def train_multimodal_model():
     print("(Combining Tabular + Image Data)")
     print("=" * 70)
     
+    # Import here to show paths configured in config.py
+    from config.config import DATA_DIR, QRCODE_DATASET_PATH
+    
+    print(f"\nConfigured Data Paths:")
+    print(f"{'-' * 70}")
+    print(f"CSV Data Directory: {DATA_DIR}")
+    print(f"  Example: {DATA_DIR}/PS_20174392719_1491204439457_log.csv")
+    print(f"\nImage Data Directory: {QRCODE_DATASET_PATH}")
+    print(f"  Benign images: {QRCODE_DATASET_PATH}/benign/benign/")
+    print(f"    Example: {QRCODE_DATASET_PATH}/benign/benign/benign_2.png")
+    print(f"  Malicious images: {QRCODE_DATASET_PATH}/malicious/malicious/")
+    print(f"    Example: {QRCODE_DATASET_PATH}/malicious/malicious/malicious_316254.png")
+    print(f"{'-' * 70}\n")
+    
     # Configure GPU before any TensorFlow operations
     # Returns True if GPU is working, False if using CPU fallback
     gpu_available = configure_gpu()
