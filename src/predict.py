@@ -50,11 +50,13 @@ def configure_gpu():
                 try:
                     for gpu in gpus:
                         tf.config.experimental.set_memory_growth(gpu, True)
-                except RuntimeError as e:
+                except RuntimeError:
                     # Memory growth must be set before GPUs have been initialized
+                    # This is safe to ignore as it means GPU is already configured
                     pass
-    except Exception as e:
+    except Exception:
         # Silently continue if GPU configuration fails
+        # Prediction will fall back to CPU or use default GPU settings
         pass
 
 
