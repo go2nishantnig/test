@@ -112,8 +112,8 @@ def check_directories():
     print("="*70)
     
     directories = {
-        'QR Data': '/home/ec2-user/qrdata',
-        'CSV Data': '/home/ec2-user/csv-data',
+        'QR Data': '/home/ec2-user/qrimages/QR codes',
+        'CSV Data': '/home/ec2-user/csvdata',
         'Models': '/home/ec2-user/model',
         'Logs': '/home/ec2-user/model/logs',
     }
@@ -217,7 +217,7 @@ def main():
     if all_passed:
         print("✓ All checks passed! Your environment is ready.")
         print("\nNext steps:")
-        print("  1. Place your data in /home/ec2-user/csv-data and /home/ec2-user/qrdata")
+        print("  1. Place your data in /home/ec2-user/csvdata and /home/ec2-user/qrimages/QR codes")
         print("  2. Open Jupyter notebook: ec2_g5_xlarge_pipeline.ipynb")
         print("  3. Or run: python ec2_quick_start.py")
     else:
