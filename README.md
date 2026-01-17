@@ -311,7 +311,7 @@ This script automatically:
 #### Method 2: Standard Training Script
 
 ```bash
-cd /home/runner/work/test/test
+cd /home/ec2-user/test
 
 # Set environment variable to use EC2 configuration
 export USE_EC2_CONFIG=1
