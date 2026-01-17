@@ -12,6 +12,14 @@ from sklearn.model_selection import train_test_split
 import pickle
 import os
 
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    print("Warning: PIL/Pillow not installed. Image loading from files will not work.")
+    print("Install with: pip install Pillow")
+
 
 class FraudDataPreprocessor:
     """Preprocessor for tabular fraud detection data (Online Payments Fraud Dataset)"""
@@ -234,6 +242,63 @@ class QRCodePreprocessor:
         
         return images, labels
     
+    def generate_synthetic_images(self, n_samples=1000):
+        """
+        Alias for generate_synthetic_qr_images() for compatibility with notebook.
+        
+        Generate synthetic QR code-like images for demonstration.
+        
+        Args:
+            n_samples: Number of samples to generate
+            
+        Returns:
+            Array of images (normalized to [0, 1])
+        """
+        images, _ = self.generate_synthetic_qr_images(n_samples=n_samples)
+        return images
+    
+    def load_images(self, directory, max_images=None):
+        """
+        Load images from a specific directory (supports both direct image directories
+        and parent directories with subdirectories).
+        
+        This method is compatible with the notebook which calls load_images() on
+        specific subdirectories like 'benign/benign' or 'malicious/malicious'.
+        
+        Args:
+            directory: Path to directory containing images
+            max_images: Maximum number of images to load (default: load all)
+            
+        Returns:
+            Array of loaded images (normalized to [0, 1])
+        """
+        if not os.path.exists(directory):
+            print(f"Directory {directory} not found. Using synthetic data.")
+            return self.generate_synthetic_images(n_samples=max_images or 1000)
+        
+        images = []
+        target_size = self.image_size
+        
+        # Load images from the directory
+        files = [f for f in os.listdir(directory) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+        
+        # Limit number of files if max_images is specified
+        if max_images is not None:
+            files = files[:max_images]
+        
+        for filename in files:
+            img = self._load_and_resize_image(
+                os.path.join(directory, filename), target_size
+            )
+            if img is not None:
+                images.append(img)
+        
+        if len(images) == 0:
+            print(f"No images could be loaded from {directory}. Using synthetic data.")
+            return self.generate_synthetic_images(n_samples=max_images or 1000)
+        
+        return np.array(images)
+    
     def _generate_qr_pattern(self, malicious=False):
         """Generate a synthetic QR code-like pattern"""
         h, w = self.image_size
@@ -346,14 +411,31 @@ class QRCodePreprocessor:
     def _load_and_resize_image(self, filepath, target_size):
         """Load and resize an image
         
-        Note: This is a placeholder. In production, use PIL or OpenCV:
-            from PIL import Image
-            img = Image.open(filepath).resize(target_size).convert('RGB')
-            return np.array(img) / 255.0
+        Args:
+            filepath: Path to the image file
+            target_size: Target size (height, width)
+            
+        Returns:
+            Image array (normalized to [0, 1]) or None if loading fails
         """
-        # Placeholder - actual implementation requires PIL/cv2
-        # Return None to signal that synthetic data should be used instead
-        return None
+        if not PIL_AVAILABLE:
+            return None
+            
+        try:
+            # Load image and convert to RGB
+            img = Image.open(filepath).convert('RGB')
+            
+            # Resize to target size
+            # Note: PIL expects (width, height) but our parameter is (height, width)
+            img = img.resize((target_size[1], target_size[0]), Image.LANCZOS)
+            
+            # Convert to numpy array and normalize to [0, 1]
+            img_array = np.array(img, dtype=np.float32) / 255.0
+            
+            return img_array
+        except Exception as e:
+            print(f"Error loading image {filepath}: {e}")
+            return None
     
     def prepare_train_test_data(self, test_size=0.2, random_state=42):
         """
