@@ -264,10 +264,10 @@ def train_multimodal_model():
     print("\n1. Preparing multimodal data...")
     preprocessor = MultimodalDataPreprocessor(image_size=MODEL_CONFIG.get('image_size', (128, 128)))
     
-    # Generate and preprocess multimodal data
+    # Load and preprocess actual multimodal data from files
     data = preprocessor.prepare_train_test_data(
         test_size=TRAINING_CONFIG['validation_split'],
-        n_samples=5000
+        use_actual_data=True  # Use all actual CSV and image data
     )
     
     print(f"   Training samples: {len(data['y_train'])}")

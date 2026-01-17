@@ -21,11 +21,10 @@ import os
 # ============================================================================
 # For AWS EC2, use: DATA_BASE_PATH = '/home/ec2-user'
 # For GitHub Codespaces, use: DATA_BASE_PATH = '/workspaces/test/data'
-DATA_BASE_PATH = '/home/ec2-user'
-# ============================================================================
-
 # Determine the repository's base directory
 _REPO_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_BASE_PATH = _REPO_BASE_DIR
+# ============================================================================
 
 # Detect environment: Determines if we should use remote/cloud directory structure
 # IS_EC2 is kept for backward compatibility, but it now detects any remote environment
@@ -61,9 +60,9 @@ else:
     # Local development paths (relative to repository)
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     MODEL_SAVE_DIR = os.path.join(BASE_DIR, 'models', 'saved_models')
-    DATA_DIR = os.path.join(BASE_DIR, 'data')
+    DATA_DIR = os.path.join(BASE_DIR, 'data', 'csvdata')
     LOG_DIR = os.path.join(BASE_DIR, 'logs')
-    QRCODE_DATASET_PATH = os.path.join(DATA_DIR, 'qr_codes')
+    QRCODE_DATASET_PATH = os.path.join(BASE_DIR, 'data', 'qrimages', 'QR codes')
 
 # Ensure directories exist (best effort - may fail on EC2 if not yet set up)
 try:
