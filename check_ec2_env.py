@@ -170,13 +170,14 @@ def check_config():
         # Add current directory to path
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         
-        from config import ec2_config
-        print("✓ EC2 configuration loaded")
-        print(f"  QR Data Path: {ec2_config.EC2_QRDATA_DIR}")
-        print(f"  CSV Data Path: {ec2_config.EC2_CSV_DATA_DIR}")
-        print(f"  Model Path: {ec2_config.EC2_MODEL_DIR}")
-        print(f"  Mixed Precision: {ec2_config.GPU_CONFIG.get('mixed_precision', False)}")
-        print(f"  Memory Growth: {ec2_config.GPU_CONFIG.get('memory_growth', False)}")
+        from config import config
+        print("✓ Configuration loaded")
+        print(f"  Environment: {'EC2' if config.IS_EC2 else 'Local'}")
+        print(f"  QR Data Path: {config.QRCODE_DATASET_PATH}")
+        print(f"  CSV Data Path: {config.DATA_DIR}")
+        print(f"  Model Path: {config.MODEL_SAVE_DIR}")
+        print(f"  Mixed Precision: {config.GPU_CONFIG.get('mixed_precision', False)}")
+        print(f"  Memory Growth: {config.GPU_CONFIG.get('memory_growth', False)}")
         return True
     except ImportError as e:
         print(f"✗ Cannot load EC2 configuration: {e}")
