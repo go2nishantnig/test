@@ -273,7 +273,9 @@ class QRCodePreprocessor:
             Array of loaded images (normalized to [0, 1])
         """
         if not os.path.exists(directory):
-            print(f"Directory {directory} not found. Using synthetic data.")
+            print(f"Warning: Directory {directory} not found.")
+            print(f"Expected: Directory containing image files (.png, .jpg, .jpeg)")
+            print(f"Falling back to synthetic data generation...")
             return self.generate_synthetic_images(n_samples=max_images or 1000)
         
         images = []
@@ -294,7 +296,14 @@ class QRCodePreprocessor:
                 images.append(img)
         
         if len(images) == 0:
-            print(f"No images could be loaded from {directory}. Using synthetic data.")
+            print(f"Warning: No images could be loaded from {directory}.")
+            if not PIL_AVAILABLE:
+                print("Reason: PIL/Pillow is not installed.")
+                print("Install with: pip install Pillow")
+            else:
+                print("Possible reasons: No supported image files found (.png, .jpg, .jpeg),")
+                print("permission issues, or corrupt image files.")
+            print("Falling back to synthetic data generation...")
             return self.generate_synthetic_images(n_samples=max_images or 1000)
         
         return np.array(images)
