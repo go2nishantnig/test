@@ -54,6 +54,10 @@ class MultimodalDataPreprocessor:
         Returns:
             Dictionary with 'tabular', 'images', and 'labels' keys
         """
+        print(f"\n{'='*70}")
+        print(f"MULTIMODAL DATA GENERATION SUMMARY")
+        print(f"{'='*70}")
+        
         # Generate tabular data
         tabular_data = self.fraud_preprocessor.generate_synthetic_data(
             n_samples=n_samples, fraud_ratio=fraud_ratio
@@ -70,6 +74,14 @@ class MultimodalDataPreprocessor:
             self.qr_preprocessor._generate_qr_pattern(malicious=mal)
             for mal in is_malicious
         ], dtype=np.float32) / 255.0
+        
+        print(f"\n{'='*70}")
+        print(f"DATA GENERATION COMPLETE")
+        print(f"{'='*70}")
+        print(f"Total samples: {n_samples}")
+        print(f"CSV records: {len(tabular_data)}")
+        print(f"Images: {len(images)}")
+        print(f"{'='*70}\n")
         
         return {
             'tabular': tabular_data,
@@ -134,6 +146,10 @@ class MultimodalDataPreprocessor:
         train_tabular = data['tabular'].iloc[train_indices].reset_index(drop=True)
         test_tabular = data['tabular'].iloc[test_indices].reset_index(drop=True)
         
+        print(f"\n[Data Preprocessing] Processing CSV data for training...")
+        print(f"[Data Preprocessing] Training CSV records: {len(train_tabular)}")
+        print(f"[Data Preprocessing] Testing CSV records: {len(test_tabular)}")
+        
         # Preprocess tabular data
         X_train_tabular, y_train = self.fraud_preprocessor.preprocess_data(train_tabular, fit=True)
         X_test_tabular, y_test = self.fraud_preprocessor.preprocess_data(test_tabular, fit=False)
@@ -141,6 +157,9 @@ class MultimodalDataPreprocessor:
         # Split and get images
         X_train_images = data['images'][train_indices]
         X_test_images = data['images'][test_indices]
+        
+        print(f"[Data Preprocessing] ✓ Training images prepared: {len(X_train_images)}")
+        print(f"[Data Preprocessing] ✓ Testing images prepared: {len(X_test_images)}")
         
         return {
             'X_train_tabular': X_train_tabular,

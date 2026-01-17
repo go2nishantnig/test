@@ -60,6 +60,11 @@ class FraudDataPreprocessor:
         n_fraud = int(n_samples * fraud_ratio)
         n_normal = n_samples - n_fraud
         
+        print(f"\n[CSV Data Processing] Generating synthetic transaction data...")
+        print(f"[CSV Data Processing] Total records to generate: {n_samples}")
+        print(f"[CSV Data Processing] - Normal transactions: {n_normal}")
+        print(f"[CSV Data Processing] - Fraudulent transactions: {n_fraud}")
+        
         # Transaction types
         transaction_types = ['PAYMENT', 'TRANSFER', 'CASH_OUT', 'DEBIT', 'CASH_IN']
         
@@ -103,6 +108,9 @@ class FraudDataPreprocessor:
         df = pd.concat([normal_df, fraud_df], ignore_index=True)
         df = df.sample(frac=1, random_state=42).reset_index(drop=True)
         
+        print(f"[CSV Data Processing] ✓ Successfully generated {n_samples} transaction records")
+        print(f"[CSV Data Processing] DataFrame shape: {df.shape}")
+        
         return df
     
     def load_from_csv(self, csv_path):
@@ -118,16 +126,25 @@ class FraudDataPreprocessor:
         Returns:
             DataFrame with transaction features and labels (standardized column name 'isFraud')
         """
+        print(f"\n[CSV Data Processing] Loading CSV data from file...")
+        print(f"[CSV Data Processing] File path: {csv_path}")
+        
         if not os.path.exists(csv_path):
+            print(f"[CSV Data Processing] ✗ CSV file not found: {csv_path}")
             raise FileNotFoundError(f"CSV file not found: {csv_path}")
         
         # Load the CSV
         df = pd.read_csv(csv_path)
         
+        print(f"[CSV Data Processing] ✓ CSV file loaded successfully")
+        print(f"[CSV Data Processing] Records read: {len(df)}")
+        print(f"[CSV Data Processing] Columns: {list(df.columns)}")
+        
         # Standardize the fraud label column name
         # Handle both 'isFraud' and 'is_fraud' naming conventions
         if 'is_fraud' in df.columns and 'isFraud' not in df.columns:
             df = df.rename(columns={'is_fraud': 'isFraud'})
+            print(f"[CSV Data Processing] Renamed column 'is_fraud' to 'isFraud'")
         
         # Verify required columns exist
         required_cols = ['step', 'type', 'amount', 'nameOrig', 'oldbalanceOrg', 
@@ -136,8 +153,8 @@ class FraudDataPreprocessor:
         
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
-            print(f"Warning: Missing expected columns: {missing_cols}")
-            print(f"Available columns: {list(df.columns)}")
+            print(f"[CSV Data Processing] ⚠ Warning: Missing expected columns: {missing_cols}")
+            print(f"[CSV Data Processing] Available columns: {list(df.columns)}")
         
         return df
     

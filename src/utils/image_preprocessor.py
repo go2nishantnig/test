@@ -56,6 +56,11 @@ class QRCodePreprocessor:
         n_malicious = int(n_samples * malicious_ratio)
         n_benign = n_samples - n_malicious
         
+        print(f"\n[Image Processing] Generating synthetic QR code images...")
+        print(f"[Image Processing] Total images to generate: {n_samples}")
+        print(f"[Image Processing] - Benign images: {n_benign}")
+        print(f"[Image Processing] - Malicious images: {n_malicious}")
+        
         # Generate benign QR code-like images (more structured patterns)
         benign_images = []
         for _ in range(n_benign):
@@ -79,6 +84,9 @@ class QRCodePreprocessor:
         
         # Normalize to [0, 1]
         images = images.astype(np.float32) / 255.0
+        
+        print(f"[Image Processing] ✓ Successfully generated {n_samples} images")
+        print(f"[Image Processing] Image shape: {images.shape}")
         
         return images, labels
     
@@ -174,15 +182,23 @@ class QRCodePreprocessor:
         images = []
         labels = []
         
+        print(f"\n[Image Processing] Attempting to load images from directory...")
+        print(f"[Image Processing] Directory path: {directory}")
+        
         # This is a placeholder - actual implementation would use PIL/cv2
         # For now, return synthetic data if directory doesn't exist
         if not os.path.exists(directory):
-            print(f"Directory {directory} not found. Using synthetic data.")
+            print(f"[Image Processing] ✗ Directory not found: {directory}")
+            print(f"[Image Processing] Falling back to synthetic data generation")
             return self.generate_synthetic_qr_images()
+        
+        benign_count = 0
+        malicious_count = 0
         
         # Load benign images - handle nested benign/benign structure
         benign_dir = os.path.join(directory, 'benign', 'benign')
         if os.path.exists(benign_dir):
+            print(f"[Image Processing] Loading benign images from: {benign_dir}")
             for filename in os.listdir(benign_dir):
                 if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
                     # Load and preprocess image
@@ -193,10 +209,13 @@ class QRCodePreprocessor:
                     if img is not None:
                         images.append(img)
                         labels.append(0)
+                        benign_count += 1
+            print(f"[Image Processing] ✓ Loaded {benign_count} benign images")
         
         # Load malicious images - handle nested malicious/malicious structure
         malicious_dir = os.path.join(directory, 'malicious', 'malicious')
         if os.path.exists(malicious_dir):
+            print(f"[Image Processing] Loading malicious images from: {malicious_dir}")
             for filename in os.listdir(malicious_dir):
                 if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
                     img = self._load_and_resize_image(
@@ -205,10 +224,15 @@ class QRCodePreprocessor:
                     if img is not None:
                         images.append(img)
                         labels.append(1)
+                        malicious_count += 1
+            print(f"[Image Processing] ✓ Loaded {malicious_count} malicious images")
         
         if len(images) == 0:
-            print("No images found. Using synthetic data.")
+            print(f"[Image Processing] ✗ No images found in directory")
+            print(f"[Image Processing] Falling back to synthetic data generation")
             return self.generate_synthetic_qr_images()
+        
+        print(f"[Image Processing] ✓ Total images loaded: {len(images)} (benign: {benign_count}, malicious: {malicious_count})")
         
         return np.array(images), np.array(labels)
     
