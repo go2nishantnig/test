@@ -18,9 +18,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.config import MODEL_SAVE_DIR, MODEL_NAME, MODEL_VERSION, MODEL_CONFIG, GPU_CONFIG
 from src.utils.data_preprocessing import (
     FraudDataPreprocessor,
-    QRCodePreprocessor,
-    MultimodalDataPreprocessor
+    QRCodePreprocessor
 )
+from src.utils.multimodal_preprocessor import MultimodalDataPreprocessor
 # Import custom layers to ensure they are registered
 from src.models.transformer_model import (
     MultiHeadSelfAttention,
