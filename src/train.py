@@ -15,7 +15,7 @@ from datetime import datetime
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config.config import MODEL_CONFIG, TRAINING_CONFIG, MODEL_SAVE_DIR, MODEL_NAME, MODEL_VERSION
+from config.config import MODEL_CONFIG, TRAINING_CONFIG, MODEL_SAVE_DIR, MODEL_NAME, MODEL_VERSION, GPU_CONFIG
 from src.models.transformer_model import (
     FraudDetectionTransformer,
     MultimodalFraudDetectionTransformer
@@ -26,6 +26,58 @@ from src.utils.data_preprocessing import (
 )
 
 
+def configure_gpu():
+    """
+    Configure GPU settings for TensorFlow to prevent memory allocation issues.
+    
+    This function should be called before any TensorFlow operations to:
+    - Enable memory growth (allocate GPU memory as needed instead of all at once)
+    - Configure mixed precision training if enabled
+    - Gracefully handle cases where GPU is not available
+    """
+    try:
+        # Get list of physical GPUs
+        gpus = tf.config.list_physical_devices('GPU')
+        
+        if gpus:
+            print(f"\n{'='*70}")
+            print(f"GPU Configuration")
+            print(f"{'='*70}")
+            print(f"Found {len(gpus)} GPU(s):")
+            for i, gpu in enumerate(gpus):
+                print(f"  GPU {i}: {gpu.name}")
+            
+            # Configure memory growth for each GPU
+            if GPU_CONFIG.get('memory_growth', True):
+                try:
+                    for gpu in gpus:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                    print(f"\n✓ GPU memory growth enabled")
+                    print(f"  (GPU memory will be allocated as needed)")
+                except RuntimeError as e:
+                    # Memory growth must be set before GPUs have been initialized
+                    print(f"\n⚠ Warning: Could not set memory growth: {e}")
+            
+            # Configure mixed precision if enabled
+            if GPU_CONFIG.get('mixed_precision', False):
+                try:
+                    policy = tf.keras.mixed_precision.Policy('mixed_float16')
+                    tf.keras.mixed_precision.set_global_policy(policy)
+                    print(f"✓ Mixed precision training enabled (float16)")
+                except Exception as e:
+                    print(f"⚠ Warning: Could not enable mixed precision: {e}")
+            
+            print(f"{'='*70}\n")
+        else:
+            print(f"\n{'='*70}")
+            print(f"No GPU detected - using CPU")
+            print(f"{'='*70}\n")
+            
+    except Exception as e:
+        print(f"\n⚠ Warning: Error during GPU configuration: {e}")
+        print(f"Continuing with default configuration...\n")
+
+
 def train_multimodal_model():
     """Train the multimodal fraud detection transformer model"""
     
@@ -33,6 +85,9 @@ def train_multimodal_model():
     print("Multimodal Fraud Detection Transformer Model Training")
     print("(Combining Tabular + Image Data)")
     print("=" * 70)
+    
+    # Configure GPU before any TensorFlow operations
+    configure_gpu()
     
     # Set random seeds for reproducibility
     np.random.seed(42)
@@ -176,6 +231,9 @@ def train_tabular_model():
     print("=" * 70)
     print("Fraud Detection Transformer Model Training (Tabular Only)")
     print("=" * 70)
+    
+    # Configure GPU before any TensorFlow operations
+    configure_gpu()
     
     # Set random seeds for reproducibility
     np.random.seed(42)
