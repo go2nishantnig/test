@@ -50,6 +50,6 @@ image = Image.open(qr_image_path)
 
 ## Notes
 
-- For AWS EC2 deployment, QR code images should be placed in `/home/ec2-user/qrimages/QR codes/` instead
+- For AWS EC2 deployment, QR code images should be placed in `/home/ec2-user/qrimages/QR codes` instead
 - This directory is tracked by git, but image files can be excluded via `.gitignore` patterns if needed
 - The system can generate synthetic QR code data for testing if real images are not available
