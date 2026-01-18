@@ -272,6 +272,13 @@ def plot_feature_importance(feature_names, importance_scores, output_dir=None, t
     if timestamp is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
+    # Validate inputs
+    if len(feature_names) != len(importance_scores):
+        raise ValueError(
+            f"Length mismatch: feature_names has {len(feature_names)} elements "
+            f"but importance_scores has {len(importance_scores)} elements"
+        )
+    
     # Sort features by importance
     indices = np.argsort(importance_scores)[::-1][:top_n]
     top_features = [feature_names[i] for i in indices]

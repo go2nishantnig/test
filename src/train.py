@@ -385,14 +385,16 @@ def train_multimodal_model():
         [data['X_test_tabular'], data['X_test_images']],
         verbose=0
     )
-    y_pred = (y_pred_proba >= 0.5).astype(int).flatten()
+    # Ensure consistent 1D arrays for plotting
+    y_pred_proba_flat = y_pred_proba.flatten()
+    y_pred = (y_pred_proba_flat >= 0.5).astype(int)
     
     # Generate and save plots
     generate_training_report(
         history=history,
         y_true=data['y_test'],
         y_pred=y_pred,
-        y_pred_proba=y_pred_proba.flatten()
+        y_pred_proba=y_pred_proba_flat
     )
     
     # Save final model in Keras format
@@ -538,14 +540,16 @@ def train_tabular_model():
     # Generate predictions for plotting
     print("\n7. Generating visualizations...")
     y_pred_proba = model.predict(X_test, verbose=0)
-    y_pred = (y_pred_proba >= 0.5).astype(int).flatten()
+    # Ensure consistent 1D arrays for plotting
+    y_pred_proba_flat = y_pred_proba.flatten()
+    y_pred = (y_pred_proba_flat >= 0.5).astype(int)
     
     # Generate and save plots
     generate_training_report(
         history=history,
         y_true=y_test,
         y_pred=y_pred,
-        y_pred_proba=y_pred_proba.flatten()
+        y_pred_proba=y_pred_proba_flat
     )
     
     # Save final model in Keras format
