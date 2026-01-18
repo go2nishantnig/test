@@ -27,6 +27,7 @@ from src.models.transformer_model import (
 )
 from src.utils.data_preprocessing import FraudDataPreprocessor
 from src.utils.multimodal_preprocessor import MultimodalDataPreprocessor
+from src.utils.plotting import generate_training_report
 
 
 def force_cpu_execution():
@@ -378,12 +379,28 @@ def train_multimodal_model():
     for metric_name, metric_value in zip(model.metrics_names, test_results):
         print(f"{metric_name}: {metric_value:.4f}")
     
+    # Generate predictions for plotting
+    print("\n7. Generating visualizations...")
+    y_pred_proba = model.predict(
+        [data['X_test_tabular'], data['X_test_images']],
+        verbose=0
+    )
+    y_pred = (y_pred_proba >= 0.5).astype(int).flatten()
+    
+    # Generate and save plots
+    generate_training_report(
+        history=history,
+        y_true=data['y_test'],
+        y_pred=y_pred,
+        y_pred_proba=y_pred_proba.flatten()
+    )
+    
     # Save final model in Keras format
     final_model_path = os.path.join(
         MODEL_SAVE_DIR,
         f'{MODEL_NAME}_{MODEL_VERSION}_final.keras'
     )
-    print(f"\n7. Saving final model to: {final_model_path}")
+    print(f"\n8. Saving final model to: {final_model_path}")
     model.save(final_model_path)
     
     print("\n" + "=" * 70)
@@ -518,12 +535,25 @@ def train_tabular_model():
     for metric_name, metric_value in zip(model.metrics_names, test_results):
         print(f"{metric_name}: {metric_value:.4f}")
     
+    # Generate predictions for plotting
+    print("\n7. Generating visualizations...")
+    y_pred_proba = model.predict(X_test, verbose=0)
+    y_pred = (y_pred_proba >= 0.5).astype(int).flatten()
+    
+    # Generate and save plots
+    generate_training_report(
+        history=history,
+        y_true=y_test,
+        y_pred=y_pred,
+        y_pred_proba=y_pred_proba.flatten()
+    )
+    
     # Save final model in Keras format
     final_model_path = os.path.join(
         MODEL_SAVE_DIR,
         f'{MODEL_NAME}_{MODEL_VERSION}_final.keras'
     )
-    print(f"\n7. Saving final model to: {final_model_path}")
+    print(f"\n8. Saving final model to: {final_model_path}")
     model.save(final_model_path)
     
     # Also save in H5 format for compatibility

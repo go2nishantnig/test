@@ -21,6 +21,7 @@ from src.utils.data_preprocessing import (
     QRCodePreprocessor
 )
 from src.utils.multimodal_preprocessor import MultimodalDataPreprocessor
+from src.utils.plotting import generate_inference_report
 # Import custom layers to ensure they are registered
 from src.models.transformer_model import (
     MultiHeadSelfAttention,
@@ -344,6 +345,13 @@ def demo_multimodal_prediction():
     print(f"Recall:    {recall:.4f}")
     print(f"F1 Score:  {f1:.4f}")
     
+    # Generate and save inference plots
+    generate_inference_report(
+        y_true=data['labels'],
+        y_pred=results['predictions'],
+        y_pred_proba=results['probabilities']
+    )
+    
     print("\n" + "=" * 70)
 
 
@@ -405,6 +413,13 @@ def demo_tabular_prediction():
     print(f"Precision: {precision:.4f}")
     print(f"Recall:    {recall:.4f}")
     print(f"F1 Score:  {f1:.4f}")
+    
+    # Generate and save inference plots
+    generate_inference_report(
+        y_true=test_data['isFraud'].values,
+        y_pred=results['predictions'],
+        y_pred_proba=results['probabilities']
+    )
     
     print("\n" + "=" * 70)
 
