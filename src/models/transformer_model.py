@@ -468,11 +468,15 @@ class TransformerBlock(layers.Layer):
         # Multi-Head Self-Attention + Residual Connection
         attn_output = self.attention(inputs)
         attn_output = self.dropout1(attn_output, training=training)
+        # Cast to input dtype for mixed precision compatibility
+        attn_output = tf.cast(attn_output, inputs.dtype)
         out1 = self.layernorm1(inputs + attn_output)  # Residual connection
         
         # Feed-Forward Network + Residual Connection
         ffn_output = self.ffn(out1, training=training)
         ffn_output = self.dropout2(ffn_output, training=training)
+        # Cast to input dtype for mixed precision compatibility
+        ffn_output = tf.cast(ffn_output, out1.dtype)
         out2 = self.layernorm2(out1 + ffn_output)  # Residual connection
         
         return out2
@@ -553,16 +557,22 @@ class TransformerDecoderBlock(layers.Layer):
         # Masked Multi-Head Self-Attention + Residual Connection
         masked_attn_output = self.masked_attention(inputs, mask=mask)
         masked_attn_output = self.dropout1(masked_attn_output, training=training)
+        # Cast to input dtype for mixed precision compatibility
+        masked_attn_output = tf.cast(masked_attn_output, inputs.dtype)
         out1 = self.layernorm1(inputs + masked_attn_output)
         
         # Cross Multi-Head Attention + Residual Connection
         cross_attn_output = self.cross_attention(out1, encoder_output)
         cross_attn_output = self.dropout2(cross_attn_output, training=training)
+        # Cast to input dtype for mixed precision compatibility
+        cross_attn_output = tf.cast(cross_attn_output, out1.dtype)
         out2 = self.layernorm2(out1 + cross_attn_output)
         
         # Feed-Forward Network + Residual Connection
         ffn_output = self.ffn(out2, training=training)
         ffn_output = self.dropout3(ffn_output, training=training)
+        # Cast to input dtype for mixed precision compatibility
+        ffn_output = tf.cast(ffn_output, out2.dtype)
         out3 = self.layernorm3(out2 + ffn_output)
         
         return out3
@@ -647,21 +657,29 @@ class CrossModalTransformerBlock(layers.Layer):
         # Cross Multi-Head Attention: tabular attends to image + Residual
         cross_attn_tab = self.cross_attn_tab_to_img(tabular_input, image_input)
         cross_attn_tab = self.dropout_tab1(cross_attn_tab, training=training)
+        # Cast to input dtype for mixed precision compatibility
+        cross_attn_tab = tf.cast(cross_attn_tab, tabular_input.dtype)
         tabular_out = self.layernorm_tab1(tabular_input + cross_attn_tab)  # Residual connection
         
         # Feed-Forward Network for tabular + Residual
         ffn_tab = self.ffn_tabular(tabular_out, training=training)
         ffn_tab = self.dropout_tab2(ffn_tab, training=training)
+        # Cast to input dtype for mixed precision compatibility
+        ffn_tab = tf.cast(ffn_tab, tabular_out.dtype)
         tabular_out = self.layernorm_tab2(tabular_out + ffn_tab)  # Residual connection
         
         # Cross Multi-Head Attention: image attends to tabular + Residual
         cross_attn_img = self.cross_attn_img_to_tab(image_input, tabular_input)
         cross_attn_img = self.dropout_img1(cross_attn_img, training=training)
+        # Cast to input dtype for mixed precision compatibility
+        cross_attn_img = tf.cast(cross_attn_img, image_input.dtype)
         image_out = self.layernorm_img1(image_input + cross_attn_img)  # Residual connection
         
         # Feed-Forward Network for image + Residual
         ffn_img = self.ffn_image(image_out, training=training)
         ffn_img = self.dropout_img2(ffn_img, training=training)
+        # Cast to input dtype for mixed precision compatibility
+        ffn_img = tf.cast(ffn_img, image_out.dtype)
         image_out = self.layernorm_img2(image_out + ffn_img)  # Residual connection
         
         return tabular_out, image_out
