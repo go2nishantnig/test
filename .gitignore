@@ -69,3 +69,9 @@ diagrams/*.png
 diagrams/*.svg
 diagrams/*.eps
 test_dtype_fix.py
+
+# Generated plots and graphs
+graphs/
+*.png
+*.jpg
+*.jpeg

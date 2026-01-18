@@ -29,7 +29,14 @@ def ensure_plot_directory(base_dir='/home/ec2-user/graphs', subdirectory='traini
         Path to the plot directory
     """
     plot_dir = os.path.join(base_dir, subdirectory)
-    os.makedirs(plot_dir, exist_ok=True)
+    try:
+        os.makedirs(plot_dir, exist_ok=True)
+    except (PermissionError, FileNotFoundError):
+        # Fall back to current directory if we don't have permission
+        fallback_dir = os.path.join(os.getcwd(), 'graphs', subdirectory)
+        print(f"⚠ Cannot create {plot_dir}, using fallback: {fallback_dir}")
+        os.makedirs(fallback_dir, exist_ok=True)
+        plot_dir = fallback_dir
     return plot_dir
 
 
