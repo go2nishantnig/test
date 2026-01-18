@@ -20,6 +20,7 @@ The system can run in two modes:
 - 📊 **TensorFlow 2.x**: Built with modern TensorFlow/Keras
 - 🔍 **Transformer architecture**: Attention-based models for both modalities
 - 📈 **TensorBoard integration**: Real-time training visualization
+- 📊 **Automatic plotting**: Generates training and inference visualization plots
 - ☁️ **AWS EC2 ready**: Pre-configured for cloud deployment
 
 ---
@@ -250,6 +251,28 @@ tensorboard --logdir logs/ --port 6006
 
 # Open in browser: http://localhost:6006
 ```
+
+#### View Generated Plots
+
+Training automatically generates visualization plots saved to organized directories:
+
+```bash
+# View training plots
+ls -lh /home/ec2-user/graphs/training/
+# Or locally: ls -lh graphs/training/
+
+# View inference plots (after running predictions)
+ls -lh /home/ec2-user/graphs/inference/
+# Or locally: ls -lh graphs/inference/
+```
+
+Generated plots include:
+- Training loss and accuracy curves
+- Confusion matrix
+- ROC curve with AUC score
+- Prediction probability distributions
+
+For detailed information, see [PLOTTING_GUIDE.md](PLOTTING_GUIDE.md).
 
 #### Check Saved Models
 
