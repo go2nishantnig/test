@@ -57,6 +57,7 @@ This project presents a state-of-the-art multimodal fraud detection system that 
 6. [Main Text](#vii-main-text)
    - 6.1 System Architecture
    - 6.2 Technical Implementation
+   - 6.2.1 Core Classes and Their Usage
    - 6.3 Features and Capabilities
    - 6.4 Deployment Options
    - 6.5 Project Structure
