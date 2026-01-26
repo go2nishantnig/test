@@ -13,6 +13,18 @@ The system can run in two modes:
 1. **Multimodal Mode**: Uses both tabular and image data (default)
 2. **Tabular-Only Mode**: Uses only transaction data (backward compatible)
 
+## Architecture Diagrams
+
+Comprehensive architecture and sequence diagrams are available to understand the system design and workflow:
+
+- **[Architecture Diagram](architecture.puml)**: Component diagram showing the complete system architecture including all modules, classes, and relationships
+- **[Training Flow Diagram](training_sequence.puml)**: Sequence diagram illustrating the training workflow for both multimodal and tabular modes
+- **[Prediction Flow Diagram](prediction_sequence.puml)**: Sequence diagram showing the inference workflow for both prediction modes
+
+📖 For detailed documentation about the diagrams, see [DIAGRAMS_README.md](DIAGRAMS_README.md)
+
+![Architecture Overview](architecture_diagram.png)
+
 ## Features
 
 - 🔄 **Dual-mode training**: Multimodal or tabular-only
