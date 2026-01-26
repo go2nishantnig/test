@@ -3,21 +3,21 @@
 title Multimodal Fraud Detection - Training Flow
 
 actor User
-participant "train.py" as Train
-participant "configure_gpu()" as GPU
-participant "train_model()" as TrainModel
-participant "train_multimodal_model()" as MultiTrain
-participant "train_tabular_model()" as TabularTrain
-participant "build_model_with_fallback()" as BuildFallback
-participant "MultimodalDataPreprocessor" as MultiPrep
-participant "FraudDataPreprocessor" as FraudPrep
-participant "QRCodePreprocessor" as QRPrep
-participant "MultimodalFraudDetectionTransformer" as MultiModel
-participant "FraudDetectionTransformer" as TabularModel
-participant "TransformerBlock" as Block
-participant "CrossModalTransformerBlock" as CrossBlock
-participant "PatchEmbedding" as Patch
-participant "generate_training_report()" as Report
+participant "src/train.py" as Train
+participant "src/train.py::configure_gpu()" as GPU
+participant "src/train.py::train_model()" as TrainModel
+participant "src/train.py::train_multimodal_model()" as MultiTrain
+participant "src/train.py::train_tabular_model()" as TabularTrain
+participant "src/train.py::build_model_with_fallback()" as BuildFallback
+participant "src/utils/multimodal_preprocessor.py::MultimodalDataPreprocessor" as MultiPrep
+participant "src/utils/data_preprocessing.py::FraudDataPreprocessor" as FraudPrep
+participant "src/utils/data_preprocessing.py::QRCodePreprocessor" as QRPrep
+participant "src/models/transformer_model.py::MultimodalFraudDetectionTransformer" as MultiModel
+participant "src/models/transformer_model.py::FraudDetectionTransformer" as TabularModel
+participant "src/models/transformer_model.py::TransformerBlock" as Block
+participant "src/models/transformer_model.py::CrossModalTransformerBlock" as CrossBlock
+participant "src/models/transformer_model.py::PatchEmbedding" as Patch
+participant "src/utils/plotting.py::generate_training_report()" as Report
 
 == Initialization ==
 User -> Train: python train.py --mode multimodal
