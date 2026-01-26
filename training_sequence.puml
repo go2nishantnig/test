@@ -1,0 +1,145 @@
+@startuml Training Flow Sequence Diagram
+
+title Multimodal Fraud Detection - Training Flow
+
+actor User
+participant "train.py" as Train
+participant "configure_gpu()" as GPU
+participant "train_model()" as TrainModel
+participant "train_multimodal_model()" as MultiTrain
+participant "train_tabular_model()" as TabularTrain
+participant "build_model_with_fallback()" as BuildFallback
+participant "MultimodalDataPreprocessor" as MultiPrep
+participant "FraudDataPreprocessor" as FraudPrep
+participant "QRCodePreprocessor" as QRPrep
+participant "MultimodalFraudDetectionTransformer" as MultiModel
+participant "FraudDetectionTransformer" as TabularModel
+participant "TransformerBlock" as Block
+participant "CrossModalTransformerBlock" as CrossBlock
+participant "PatchEmbedding" as Patch
+participant "generate_training_report()" as Report
+
+== Initialization ==
+User -> Train: python train.py --mode multimodal
+Train -> GPU: Configure GPU settings
+GPU --> Train: GPU configured
+
+== Training Mode Selection ==
+Train -> TrainModel: Select training mode
+alt mode == 'multimodal'
+    TrainModel -> MultiTrain: train_multimodal_model()
+    
+    == Multimodal Data Preparation ==
+    MultiTrain -> MultiPrep: Initialize preprocessor
+    MultiPrep -> FraudPrep: Create fraud preprocessor
+    MultiPrep -> QRPrep: Create QR preprocessor
+    MultiPrep --> MultiTrain: Preprocessor ready
+    
+    MultiTrain -> MultiPrep: load_all_csv_data()
+    MultiPrep -> FraudPrep: Load CSV files from data/csvdata/
+    FraudPrep --> MultiPrep: Tabular data loaded
+    
+    MultiTrain -> MultiPrep: load_all_qr_images()
+    MultiPrep -> QRPrep: Load images from data/qrimages/
+    QRPrep --> MultiPrep: Image data loaded
+    
+    MultiTrain -> MultiPrep: prepare_train_test_data()
+    MultiPrep --> MultiTrain: Train/test split ready
+    
+    == Multimodal Model Building ==
+    MultiTrain -> BuildFallback: build_model_with_fallback()
+    BuildFallback -> MultiModel: Build multimodal transformer
+    
+    MultiModel -> Block: Create tabular encoder blocks
+    Block --> MultiModel: Tabular encoder ready
+    
+    MultiModel -> Patch: Create image patch embedding
+    Patch --> MultiModel: Image embedding ready
+    
+    MultiModel -> Block: Create image encoder blocks
+    Block --> MultiModel: Image encoder ready
+    
+    MultiModel -> CrossBlock: Create cross-modal fusion blocks
+    CrossBlock --> MultiModel: Cross-modal blocks ready
+    
+    MultiModel -> MultiModel: build_model()
+    MultiModel -> MultiModel: compile_model()
+    MultiModel --> BuildFallback: Compiled model
+    BuildFallback --> MultiTrain: Model built successfully
+    
+    == Model Training ==
+    MultiTrain -> MultiModel: model.fit([X_tabular, X_images], y)
+    MultiModel --> MultiTrain: Training history
+    
+    MultiTrain -> MultiModel: Save model (*.keras)
+    MultiTrain -> MultiPrep: Save preprocessor (*.pkl)
+    
+    MultiTrain -> Report: generate_training_report(history)
+    Report --> MultiTrain: Report saved
+    
+    MultiTrain --> TrainModel: Training complete
+
+else mode == 'tabular'
+    TrainModel -> TabularTrain: train_tabular_model()
+    
+    == Tabular Data Preparation ==
+    TabularTrain -> FraudPrep: Initialize preprocessor
+    FraudPrep --> TabularTrain: Preprocessor ready
+    
+    TabularTrain -> FraudPrep: generate_synthetic_data()
+    FraudPrep --> TabularTrain: Synthetic data generated
+    
+    TabularTrain -> FraudPrep: preprocess_data(fit=True)
+    FraudPrep --> TabularTrain: Preprocessed data ready
+    
+    == Tabular Model Building ==
+    TabularTrain -> BuildFallback: build_model_with_fallback()
+    BuildFallback -> TabularModel: Build tabular transformer
+    
+    TabularModel -> Block: Create encoder blocks
+    Block --> TabularModel: Encoder blocks ready
+    
+    TabularModel -> TabularModel: build_model()
+    TabularModel -> TabularModel: compile_model()
+    TabularModel --> BuildFallback: Compiled model
+    BuildFallback --> TabularTrain: Model built successfully
+    
+    == Model Training ==
+    TabularTrain -> TabularModel: model.fit(X_tabular, y)
+    TabularModel --> TabularTrain: Training history
+    
+    TabularTrain -> TabularModel: Save model (*.keras)
+    TabularTrain -> FraudPrep: Save scaler (*.pkl)
+    
+    TabularTrain -> Report: generate_training_report(history)
+    Report --> TabularTrain: Report saved
+    
+    TabularTrain --> TrainModel: Training complete
+end
+
+TrainModel --> Train: Success
+Train --> User: Training completed
+
+note right of BuildFallback
+  **Fallback Mechanism:**
+  1. Try building with GPU
+  2. If GPU fails, force CPU
+  3. Retry building on CPU
+end note
+
+note right of MultiModel
+  **Multimodal Architecture:**
+  - Tabular: Dense -> TransformerBlocks
+  - Image: PatchEmbedding -> TransformerBlocks
+  - Fusion: CrossModalTransformerBlock
+  - Output: Concatenate -> Dense -> Sigmoid
+end note
+
+note right of TabularModel
+  **Tabular Architecture:**
+  - Input: Dense projection
+  - Encoder: TransformerBlocks
+  - Output: Global pooling -> Dense -> Sigmoid
+end note
+
+@enduml

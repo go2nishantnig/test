@@ -1,0 +1,156 @@
+@startuml Prediction Flow Sequence Diagram
+
+title Multimodal Fraud Detection - Prediction/Inference Flow
+
+actor User
+participant "predict.py" as Predict
+participant "configure_gpu()" as GPU
+participant "demo_prediction()" as Demo
+participant "demo_multimodal_prediction()" as MultiDemo
+participant "demo_tabular_prediction()" as TabularDemo
+participant "MultimodalFraudDetectionPredictor" as MultiPredictor
+participant "FraudDetectionPredictor" as TabularPredictor
+participant "MultimodalDataPreprocessor" as MultiPrep
+participant "FraudDataPreprocessor" as FraudPrep
+participant "QRCodePreprocessor" as QRPrep
+participant "keras.models" as Keras
+participant "MultimodalFraudDetectionTransformer" as MultiModel
+participant "FraudDetectionTransformer" as TabularModel
+participant "generate_inference_report()" as Report
+
+== Initialization ==
+User -> Predict: python predict.py --mode multimodal
+Predict -> GPU: Configure GPU settings
+GPU --> Predict: GPU configured
+
+== Prediction Mode Selection ==
+Predict -> Demo: demo_prediction(mode)
+
+alt mode == 'multimodal'
+    Demo -> MultiDemo: demo_multimodal_prediction()
+    
+    == Load Multimodal Model ==
+    MultiDemo -> MultiPredictor: Initialize predictor
+    MultiPredictor -> Keras: load_model(model_path)
+    Keras --> MultiPredictor: MultimodalFraudDetectionTransformer loaded
+    
+    MultiPredictor -> MultiPrep: Initialize preprocessor
+    MultiPrep -> FraudPrep: Create fraud preprocessor
+    MultiPrep -> QRPrep: Create QR preprocessor
+    MultiPrep --> MultiPredictor: Preprocessor created
+    
+    MultiPredictor -> MultiPrep: load_preprocessors(path)
+    MultiPrep -> FraudPrep: Load scaler and encoders
+    MultiPrep -> QRPrep: Load image preprocessor
+    MultiPrep --> MultiPredictor: Preprocessors loaded
+    MultiPredictor --> MultiDemo: Predictor ready
+    
+    == Generate Test Data ==
+    MultiDemo -> MultiPrep: generate_synthetic_multimodal_data()
+    MultiPrep -> FraudPrep: Generate tabular data
+    MultiPrep -> QRPrep: Generate synthetic images
+    MultiPrep --> MultiDemo: Test data generated
+    
+    MultiDemo -> MultiPrep: preprocess_multimodal_data()
+    MultiPrep -> FraudPrep: Scale and encode tabular data
+    MultiPrep -> QRPrep: Normalize images
+    MultiPrep --> MultiDemo: Preprocessed data ready
+    
+    == Make Predictions ==
+    MultiDemo -> MultiPredictor: predict(tabular_data, images)
+    MultiPredictor -> FraudPrep: preprocess_data(tabular, fit=False)
+    FraudPrep --> MultiPredictor: Scaled tabular data
+    
+    MultiPredictor -> MultiModel: model.predict([X_tabular, X_images])
+    MultiModel --> MultiPredictor: Fraud probabilities
+    
+    MultiPredictor -> MultiPredictor: Apply threshold (>= 0.5)
+    MultiPredictor --> MultiDemo: Predictions + probabilities
+    
+    == Display Results ==
+    MultiDemo -> MultiDemo: Calculate metrics (accuracy, precision, recall, F1)
+    MultiDemo -> Report: generate_inference_report(y_true, y_pred, y_proba)
+    Report --> MultiDemo: Plots saved
+    MultiDemo --> Demo: Results displayed
+
+else mode == 'tabular'
+    Demo -> TabularDemo: demo_tabular_prediction()
+    
+    == Load Tabular Model ==
+    TabularDemo -> TabularPredictor: Initialize predictor
+    TabularPredictor -> Keras: load_model(model_path)
+    Keras --> TabularPredictor: FraudDetectionTransformer loaded
+    
+    TabularPredictor -> FraudPrep: Initialize preprocessor
+    FraudPrep --> TabularPredictor: Preprocessor created
+    
+    TabularPredictor -> FraudPrep: load_scaler(path)
+    FraudPrep --> TabularPredictor: Scaler loaded
+    TabularPredictor --> TabularDemo: Predictor ready
+    
+    == Generate Test Data ==
+    TabularDemo -> FraudPrep: generate_synthetic_data()
+    FraudPrep --> TabularDemo: Test data generated
+    
+    == Make Predictions ==
+    TabularDemo -> TabularPredictor: predict(data)
+    TabularPredictor -> FraudPrep: preprocess_data(data, fit=False)
+    FraudPrep --> TabularPredictor: Scaled data
+    
+    TabularPredictor -> TabularModel: model.predict(X_tabular)
+    TabularModel --> TabularPredictor: Fraud probabilities
+    
+    TabularPredictor -> TabularPredictor: Apply threshold (>= 0.5)
+    TabularPredictor --> TabularDemo: Predictions + probabilities
+    
+    == Display Results ==
+    TabularDemo -> TabularDemo: Calculate metrics (accuracy, precision, recall, F1)
+    TabularDemo -> Report: generate_inference_report(y_true, y_pred, y_proba)
+    Report --> TabularDemo: Plots saved
+    TabularDemo --> Demo: Results displayed
+end
+
+Demo --> Predict: Success
+Predict --> User: Predictions completed
+
+== Single Transaction Prediction ==
+User -> MultiPredictor: predict_single_transaction(features, image)
+MultiPredictor -> FraudPrep: Preprocess tabular features
+FraudPrep --> MultiPredictor: Scaled features
+
+MultiPredictor -> MultiPredictor: Ensure image shape [1, H, W, C]
+MultiPredictor -> MultiModel: model.predict([features, image])
+MultiModel --> MultiPredictor: Fraud probability
+
+MultiPredictor -> MultiPredictor: Apply threshold
+MultiPredictor --> User: Single prediction result
+
+note right of MultiPredictor
+  **Multimodal Prediction:**
+  - Load both model and preprocessor
+  - Process tabular + image inputs
+  - Get fraud probability from model
+  - Return: prediction, probability, is_fraud
+end note
+
+note right of TabularPredictor
+  **Tabular Prediction:**
+  - Load model and scaler only
+  - Process tabular input
+  - Get fraud probability from model
+  - Return: prediction, probability, is_fraud
+end note
+
+note right of MultiModel
+  **Model Inference Path:**
+  Tabular → Encoder → Features
+  Image → PatchEmbed → Encoder → Features
+  Both → CrossModal Fusion → Concat → Dense → Sigmoid
+end note
+
+note right of TabularModel
+  **Model Inference Path:**
+  Tabular → Encoder → Global Pool → Dense → Sigmoid
+end note
+
+@enduml
