@@ -1,0 +1,358 @@
+@startuml Multimodal Fraud Detection Transformer Architecture
+
+title Multimodal Fraud Detection Transformer - Full Architectural Flow
+
+' Main Entry Points
+package "Entry Points" {
+    component [train.py] <<script>>
+    component [predict.py] <<script>>
+}
+
+' Configuration
+package "Configuration" {
+    component [config.py] <<config>>
+}
+
+' Training Functions
+package "Training Module" {
+    rectangle configure_gpu
+    rectangle force_cpu_execution
+    rectangle build_model_with_fallback
+    rectangle train_multimodal_model
+    rectangle train_tabular_model
+    rectangle train_model
+}
+
+' Prediction Functions  
+package "Prediction Module" {
+    class MultimodalFraudDetectionPredictor {
+        model
+        preprocessor
+        init()
+        predict()
+        predict_single_transaction()
+    }
+    
+    class FraudDetectionPredictor {
+        model
+        preprocessor
+        init()
+        predict()
+        predict_single_transaction()
+    }
+    
+    rectangle demo_multimodal_prediction
+    rectangle demo_tabular_prediction
+    rectangle demo_prediction
+}
+
+' Preprocessors
+package "Data Preprocessing" {
+    class FraudDataPreprocessor {
+        scaler
+        label_encoders
+        feature_names
+        init()
+        generate_synthetic_data()
+        preprocess_data()
+        load_from_csv()
+        save_scaler()
+        load_scaler()
+    }
+    
+    class QRCodePreprocessor {
+        image_size
+        init()
+        load_qr_dataset()
+        preprocess_images()
+        generate_synthetic_images()
+    }
+    
+    class MultimodalDataPreprocessor {
+        fraud_preprocessor
+        qr_preprocessor
+        init()
+        load_all_csv_data()
+        load_all_qr_images()
+        prepare_train_test_data()
+        preprocess_multimodal_data()
+        generate_synthetic_multimodal_data()
+        save_preprocessors()
+        load_preprocessors()
+    }
+}
+
+' Transformer Layers
+package "Core Transformer Layers" {
+    class FeedForward {
+        dense1
+        dense2
+        dropout
+        d_model
+        dff
+        dropout_rate
+        init()
+        call()
+        get_config()
+    }
+    
+    class ResidualConnection {
+        layer_norm
+        dropout
+        d_model
+        dropout_rate
+        init()
+        call()
+        get_config()
+    }
+}
+
+' Attention Mechanisms
+package "Attention Mechanisms" {
+    class MultiHeadSelfAttention {
+        wq
+        wk
+        wv
+        dense
+        d_model
+        num_heads
+        depth
+        init()
+        split_heads()
+        call()
+        get_config()
+    }
+    
+    class MaskedMultiHeadAttention {
+        wq
+        wk
+        wv
+        dense
+        d_model
+        num_heads
+        depth
+        init()
+        split_heads()
+        create_causal_mask()
+        call()
+        get_config()
+    }
+    
+    class CrossModalAttention {
+        wq
+        wk
+        wv
+        dense
+        d_model
+        num_heads
+        depth
+        init()
+        split_heads()
+        call()
+        get_config()
+    }
+}
+
+' Transformer Blocks
+package "Transformer Blocks" {
+    class TransformerBlock {
+        attention
+        ffn
+        layernorm1
+        layernorm2
+        dropout1
+        dropout2
+        d_model
+        num_heads
+        dff
+        dropout_rate
+        init()
+        call()
+        get_config()
+    }
+    
+    class TransformerDecoderBlock {
+        masked_attention
+        cross_attention
+        ffn
+        layernorm1
+        layernorm2
+        layernorm3
+        dropout1
+        dropout2
+        dropout3
+        d_model
+        num_heads
+        dff
+        dropout_rate
+        init()
+        call()
+        get_config()
+    }
+    
+    class CrossModalTransformerBlock {
+        cross_attn_tab_to_img
+        cross_attn_img_to_tab
+        ffn_tabular
+        ffn_image
+        layernorm_tab1
+        layernorm_tab2
+        layernorm_img1
+        layernorm_img2
+        dropout_tab1
+        dropout_tab2
+        dropout_img1
+        dropout_img2
+        d_model
+        num_heads
+        dff
+        dropout_rate
+        init()
+        call()
+        get_config()
+    }
+}
+
+' Embeddings
+package "Embedding Layers" {
+    class PatchEmbedding {
+        projection
+        position_embedding
+        image_size
+        patch_size
+        d_model
+        num_patches
+        init()
+        call()
+        get_config()
+    }
+}
+
+' Main Models
+package "Transformer Models" {
+    class MultimodalFraudDetectionTransformer {
+        config
+        model
+        init()
+        build_tabular_encoder()
+        build_image_encoder()
+        build_model()
+        compile_model()
+        get_model_summary()
+    }
+    
+    class FraudDetectionTransformer {
+        config
+        model
+        init()
+        build_encoder()
+        build_model()
+        compile_model()
+        get_model_summary()
+    }
+}
+
+' Utilities
+package "Utilities" {
+    rectangle generate_training_report
+    rectangle generate_inference_report
+}
+
+' ==== RELATIONSHIPS ====
+
+' Entry point relationships
+[train.py] --> configure_gpu
+[train.py] --> train_model
+[predict.py] --> demo_prediction
+[train.py] ..> [config.py]
+[predict.py] ..> [config.py]
+
+' Training flow
+train_model --> train_multimodal_model
+train_model --> train_tabular_model
+train_multimodal_model --> configure_gpu
+train_tabular_model --> configure_gpu
+train_multimodal_model --> build_model_with_fallback
+train_tabular_model --> build_model_with_fallback
+build_model_with_fallback --> force_cpu_execution
+
+' Training with preprocessors
+train_multimodal_model --> MultimodalDataPreprocessor
+train_tabular_model --> FraudDataPreprocessor
+train_multimodal_model --> MultimodalFraudDetectionTransformer
+train_tabular_model --> FraudDetectionTransformer
+train_multimodal_model --> generate_training_report
+train_tabular_model --> generate_training_report
+
+' Prediction flow
+demo_prediction --> demo_multimodal_prediction
+demo_prediction --> demo_tabular_prediction
+demo_multimodal_prediction --> MultimodalFraudDetectionPredictor
+demo_tabular_prediction --> FraudDetectionPredictor
+demo_multimodal_prediction --> generate_inference_report
+demo_tabular_prediction --> generate_inference_report
+
+' Predictor dependencies
+MultimodalFraudDetectionPredictor --> MultimodalDataPreprocessor
+FraudDetectionPredictor --> FraudDataPreprocessor
+
+' Preprocessor composition
+MultimodalDataPreprocessor *-- FraudDataPreprocessor
+MultimodalDataPreprocessor *-- QRCodePreprocessor
+
+' Model uses Transformer Blocks
+MultimodalFraudDetectionTransformer --> TransformerBlock
+MultimodalFraudDetectionTransformer --> CrossModalTransformerBlock
+MultimodalFraudDetectionTransformer --> PatchEmbedding
+FraudDetectionTransformer --> TransformerBlock
+
+' Transformer Block composition
+TransformerBlock *-- MultiHeadSelfAttention
+TransformerBlock *-- FeedForward
+TransformerDecoderBlock *-- MaskedMultiHeadAttention
+TransformerDecoderBlock *-- CrossModalAttention
+TransformerDecoderBlock *-- FeedForward
+CrossModalTransformerBlock *-- CrossModalAttention
+CrossModalTransformerBlock *-- FeedForward
+
+note top of MultimodalFraudDetectionTransformer
+**Multimodal Architecture Flow:**
+1. Tabular Input -> Dense projection -> Position Encoding
+2. Image Input -> PatchEmbedding -> Position Encoding
+3. Each modality processed through TransformerBlocks
+4. Cross-modal fusion via CrossModalTransformerBlock
+5. Global pooling of both modalities
+6. Concatenate -> Dense layers -> Sigmoid output
+end note
+
+note top of FraudDetectionTransformer
+**Tabular-Only Architecture Flow:**
+1. Tabular Input -> Dense projection -> Position Encoding
+2. Stack of TransformerBlocks
+3. Global pooling
+4. Dense layers -> Sigmoid output
+end note
+
+note right of CrossModalTransformerBlock
+**Bidirectional Cross-Attention:**
+- Tabular attends to Image
+- Image attends to Tabular
+- Enables rich multimodal fusion
+end note
+
+note right of TransformerBlock
+**Standard Transformer Encoder:**
+- Multi-Head Self-Attention
+- Residual + LayerNorm
+- Feed-Forward Network
+- Residual + LayerNorm
+end note
+
+note right of PatchEmbedding
+**Vision Transformer (ViT) Approach:**
+- Divide image into patches
+- Flatten and project patches
+- Add position embeddings
+end note
+
+@enduml
