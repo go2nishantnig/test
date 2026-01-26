@@ -2,9 +2,17 @@
 
 This document provides comprehensive architectural documentation for the Multimodal Fraud Detection Transformer system.
 
+## Quick Start
+
+- **View the diagram**: Open `architecture_diagram.png` to see the complete system architecture
+- **Edit the diagram**: Modify `architecture.puml` and regenerate using PlantUML
+- **Navigate**: Jump to [Key Components](#key-architectural-components) or [Data Flow](#data-flow-summary)
+
 ## Architecture Diagram
 
-The complete architectural flow is documented in `architecture.puml` using PlantUML notation. This diagram shows:
+The complete architectural flow is documented in `architecture.puml` using PlantUML notation. A pre-generated diagram image is available at `architecture_diagram.png`.
+
+This diagram shows:
 
 - All classes with exact names from the codebase
 - Complete class attributes and methods
@@ -24,11 +32,14 @@ The complete architectural flow is documented in `architecture.puml` using Plant
 2. Open `architecture.puml`
 3. Press `Alt+D` to preview the diagram
 
-### Option 3: Command Line (with PlantUML installed)
+### Option 3: Command Line (with PlantUML and Graphviz installed)
 ```bash
-# Install PlantUML (requires Java)
+# Install PlantUML and Graphviz (requires Java)
 # On Ubuntu/Debian:
-sudo apt-get install plantuml
+sudo apt-get install plantuml graphviz
+
+# On macOS:
+brew install plantuml graphviz
 
 # Generate PNG image
 plantuml architecture.puml
@@ -39,9 +50,14 @@ plantuml -tsvg architecture.puml
 
 ### Option 4: Docker
 ```bash
-# Generate diagram using Docker (no local installation needed)
+# Generate diagram using Docker (no local installation needed, includes Graphviz)
 docker run --rm -v $(pwd):/data plantuml/plantuml architecture.puml
+
+# Generate SVG
+docker run --rm -v $(pwd):/data plantuml/plantuml -tsvg architecture.puml
 ```
+
+**Note**: PlantUML requires Graphviz (`dot` command) to be installed for diagram generation. If you get an error about `/opt/local/bin/dot` not found, please install Graphviz first.
 
 ## Key Architectural Components
 
