@@ -3,20 +3,20 @@
 title Multimodal Fraud Detection - Prediction/Inference Flow
 
 actor User
-participant "predict.py" as Predict
-participant "configure_gpu()" as GPU
-participant "demo_prediction()" as Demo
-participant "demo_multimodal_prediction()" as MultiDemo
-participant "demo_tabular_prediction()" as TabularDemo
-participant "MultimodalFraudDetectionPredictor" as MultiPredictor
-participant "FraudDetectionPredictor" as TabularPredictor
-participant "MultimodalDataPreprocessor" as MultiPrep
-participant "FraudDataPreprocessor" as FraudPrep
-participant "QRCodePreprocessor" as QRPrep
+participant "src/predict.py" as Predict
+participant "src/predict.py::configure_gpu()" as GPU
+participant "src/predict.py::demo_prediction()" as Demo
+participant "src/predict.py::demo_multimodal_prediction()" as MultiDemo
+participant "src/predict.py::demo_tabular_prediction()" as TabularDemo
+participant "src/predict.py::MultimodalFraudDetectionPredictor" as MultiPredictor
+participant "src/predict.py::FraudDetectionPredictor" as TabularPredictor
+participant "src/utils/multimodal_preprocessor.py::MultimodalDataPreprocessor" as MultiPrep
+participant "src/utils/data_preprocessing.py::FraudDataPreprocessor" as FraudPrep
+participant "src/utils/data_preprocessing.py::QRCodePreprocessor" as QRPrep
 participant "keras.models" as Keras
-participant "MultimodalFraudDetectionTransformer" as MultiModel
-participant "FraudDetectionTransformer" as TabularModel
-participant "generate_inference_report()" as Report
+participant "src/models/transformer_model.py::MultimodalFraudDetectionTransformer" as MultiModel
+participant "src/models/transformer_model.py::FraudDetectionTransformer" as TabularModel
+participant "src/utils/plotting.py::generate_inference_report()" as Report
 
 == Initialization ==
 User -> Predict: python predict.py --mode multimodal
