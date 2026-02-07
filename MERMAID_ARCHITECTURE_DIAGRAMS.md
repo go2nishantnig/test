@@ -618,7 +618,6 @@ graph TB
     IMG_TRANS3 --> CROSS1
     
     CROSS1 --> CROSS2
-    CROSS1 --> CROSS2
 
     CROSS2 --> TAB_POOL
     CROSS2 --> IMG_POOL
