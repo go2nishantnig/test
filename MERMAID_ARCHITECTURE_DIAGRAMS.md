@@ -18,6 +18,8 @@ This document contains comprehensive Mermaid diagrams for the Multimodal Fraud D
 
 This diagram shows the complete component architecture of the Multimodal Fraud Detection Transformer system.
 
+> **Note**: The diagram shows simplified component names (e.g., `train.py`) for clarity. The actual files are located in the `src/` directory (e.g., `src/train.py`). Commands shown in this document use the correct paths (e.g., `python src/train.py`).
+
 ```mermaid
 graph TB
     subgraph "Entry Points"
